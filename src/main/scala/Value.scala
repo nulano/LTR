@@ -33,7 +33,7 @@ object Value extends Parseable[Value] {
         pc.pop(Tk.RBrace)
         ValExpression(exp)(tok)
       }
-      case _ => throw ParseException(s"not a value: ${tok.text}")
+      case _ => throw UnexpectedTokenParseException(tok, "a value")
     }
   }
 }

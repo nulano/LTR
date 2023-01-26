@@ -4,13 +4,8 @@ object PType extends Parseable[PType] {
   def parse(pc: ParseContext): PType = {
     val tok = pc.pop()
     tok.tk match {
-      case Tk.Var => {
-        tok.text match {
-          case "1" => PUnit()
-          case "0" => PVoid()
-          case _ => throw ParseException(s"not a p-type: ${tok.text}")
-        }
-      }
+      case Tk.Var if tok.text == "1" => PUnit()
+      case Tk.Var if tok.text == "0" => PVoid()
       case Tk.LParen => {
         val left = PType.parse(pc)
         val op = pc.pop(Tk.Times, Tk.Plus, Tk.And)
@@ -37,7 +32,7 @@ object PType extends Parseable[PType] {
         val tp = PType.parse(pc)
         PExists(idx.text, sort.text, tp)
       }
-      case _ => throw ParseException(s"not a p-type: ${tok.tk}")
+      case _ => throw UnexpectedTokenParseException(tok, "a positive type")
     }
   }
 }

@@ -74,7 +74,4 @@ object Tk {
   }
 }
 
-trait Location
-case class IntLocation(loc: Int) extends Location
-
-case class Token(tk: Tk, text: String, loc: Location)
+case class Token(tk: Tk, text: String, loc: ParseLocation)

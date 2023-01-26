@@ -35,7 +35,7 @@ object Expression extends Parseable[Expression] {
         val body = Expression.parse(pc)
         ExpRecursive(variable, tp, body)(tok)
       }
-      case _ => throw ParseException("not an expression: " + tok)
+      case _ => throw UnexpectedTokenParseException(tok, "an expression")
     }
   }
 }
@@ -97,7 +97,7 @@ object Head extends Parseable[Head] {
         pc.pop(Tk.RSquare)
         HeadValue(v, tp)(tok)
       }
-      case _ => throw ParseException(s"not a head: $tok")
+      case _ => throw UnexpectedTokenParseException(tok, "a head")
     }
   }
 }
@@ -131,7 +131,7 @@ object BoundExpression extends Parseable[BoundExpression] {
       pc.pop(Tk.RParen)
       BEExpression(exp, tp)(tok)
     } else {
-      val head = Head.parse(pc)
+      val head = Head.parse(pc)  // TODO custom exception?
       pc.pop(Tk.LParen)
       val spine = new collection.immutable.VectorBuilder[Value]()
       while pc.peek().tk != Tk.RParen do {
@@ -185,7 +185,8 @@ sealed trait Pattern {
 object Pattern extends Parseable[Pattern] {
   override def parse(pc: ParseContext): Pattern = {
     val tok = pc.pop(Tk.LBrace)
-    pc.pop().tk match {
+    val tok2 = pc.pop()
+    tok2.tk match {
       case Tk.RBrace => PatVoid()(tok)
       case Tk.LAngle => {
         if pc.peek().tk == Tk.RAngle then {
@@ -238,7 +239,7 @@ object Pattern extends Parseable[Pattern] {
         pc.pop(Tk.RBrace)
         PatInto(variable, body)(tok)
       }
-      case t => throw ParseException(s"not a pattern: ${t.text}")
+      case _ => throw UnexpectedTokenParseException(tok2, "a match pattern")
     }
   }
 }
