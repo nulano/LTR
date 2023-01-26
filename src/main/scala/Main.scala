@@ -5,15 +5,12 @@ object Main {
     :
     (1) × ((V ^ V (?) -> (^ 1) ) + (?))
     */
-    val pc = StringParseContext("<<>, inl  { return { fun x . return <> } }   >")
-    val v = Value.parse(pc)
-    val s = v.toString
-    println(s)
-    val v2 = Value.parse(StringParseContext(s))
+    val s = "[<<>, inl  { return { fun x . return < > } }> : (1 × (V ^ V (1 ~ ^ 1 ) + 0)  )]()"
+    val pc = StringParseContext(s)
+    val v = BoundExpression.parse(pc)
+    val s2 = v.toString
+    println(s2)
+    val v2 = BoundExpression.parse(StringParseContext(s2))
     println(v equals v2)
-    v match {
-      case ValPair(left, right) => println(s"pair $left, $right")
-      case _ => println("?")
-    }
   }
 }

@@ -11,6 +11,9 @@ enum Tk(val text: String):
   case Comma extends Tk(",")
   case Colon extends Tk(":")
   case Semicolon extends Tk(";")
+  case Plus extends Tk("+")
+  case Minus extends Tk("-")
+  case Times extends Tk("×")
   case Eq extends Tk("=")
   case LParen extends Tk("(")
   case RParen extends Tk(")")
@@ -23,6 +26,12 @@ enum Tk(val text: String):
   case Lambda extends Tk("λ")
   case Up extends Tk("↑")
   case Down extends Tk("↓")
+  case Right extends Tk("→")
+  case And extends Tk("∧")
+  case Or extends Tk("∨")
+  case ForAll extends Tk("∀")
+  case Exists extends Tk("∃")
+  // TODO ??? "⊃"
   case Var extends Tk("<VAR>")
 
 object Tk {
@@ -38,6 +47,9 @@ object Tk {
     case "," => Comma
     case ":" => Colon
     case ";" => Semicolon
+    case "+" => Plus
+    case "-" => Minus
+    case "×" | "X" => Times
     case "=" => Eq
     case "(" => LParen
     case ")" => RParen
@@ -50,6 +62,12 @@ object Tk {
     case "λ" | "fun" => Lambda
     case "↑" | "^" => Up
     case "↓" | "V" => Down
+    case "→" | "~" => Right
+    case "∧" | "&" => And
+    case "∨" | "|" => Or
+    case "∀" | "A" => ForAll
+    case "∃" | "E" => Exists
+    // TODO case "⊃" | ?? => ??
     case _ => Var
   }
 }

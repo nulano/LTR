@@ -9,9 +9,9 @@ case class ParseException(msg: String) extends Exception(msg)
 sealed trait ParseContext {
   def peek() : Token
   def pop() : Token
-  def pop(tk: Tk) : Token = {
+  def pop(tk: Tk*) : Token = {
     val tok = pop()
-    if tok.tk != tk then throw ParseException(s"unexpected '${tok.text}' (expecting '${tk.text}')")
+    if !tk.contains(tok.tk) then throw ParseException(s"unexpected '${tok.text}' (expecting '${tk.map(_.text).mkString("' or '")}')")
     tok
   }
 }
