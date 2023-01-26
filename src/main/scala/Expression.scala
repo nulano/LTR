@@ -1,5 +1,7 @@
 
-sealed trait Expression
+sealed trait Expression {
+  def checkType(vc: VariableContext, tp: NType): Unit
+}
 
 object Expression extends Parseable[Expression] {
   override def parse(pc: ParseContext): Expression = {
@@ -36,19 +38,41 @@ object Expression extends Parseable[Expression] {
 
 case class ExpReturn(value: Value)(val token: Token) extends Expression {
   override def toString: String = s"return $value"
+
+  // Unref <= ^
+  override def checkType(vc: VariableContext, tp: NType): Unit = tp match {
+    case NComputation(result) => value.checkType(vc, result)
+    case _ => throw TypeException(s"$this does not have type $tp")
+  }
 }
 case class ExpLet(variable: String, value: BoundExpression, body: Expression)(val token: Token) extends Expression {
   override def toString: String = s"let $variable = $value; $body"
+
+  // Unref <= let
+  override def checkType(vc: VariableContext, tp: NType): Unit =
+    body.checkType(vc.add(variable, value.getType(vc).result), tp)
 }
 // TODO case class ExpMatch(tk: Token, ) {}
 case class ExpFunction(variable: String, body: Expression)(val token: Token) extends Expression {
   override def toString: String = s"λ$variable . $body"
+
+  // Unref <= λ
+  override def checkType(vc: VariableContext, tp: NType): Unit = tp match {
+    case NFunction(a, r) => body.checkType(vc.add(variable, a), r)
+    case _ => throw TypeException(s"$this does not have type $tp")
+  }
 }
 case class ExpRecursive(variable: String, tp: NType, body: Expression)(val token: Token) extends Expression {
   override def toString: String = s"rec $variable : $tp . $body"
+
+  // Unref <= rec
+  override def checkType(vc: VariableContext, tp: NType): Unit =
+    body.checkType(vc.add(variable, PSuspended(tp)), tp)
 }
 
-sealed trait Head
+sealed trait Head {
+  def getType(vc: VariableContext): PType
+}
 
 object Head extends Parseable[Head] {
   override def parse(pc: ParseContext): Head = {
@@ -69,12 +93,20 @@ object Head extends Parseable[Head] {
 
 case class HeadVariable(variable: String)(val token: Token) extends Head {
   override def toString: String = variable
+
+  // Unref => Var
+  override def getType(vc: VariableContext): PType = vc.find(variable).get
 }
 case class HeadValue(value: Value, tp: PType)(val token: Token) extends Head {
   override def toString: String = s"[$value : $tp]"
+
+  // Unref => ValAnnot
+  override def getType(vc: VariableContext): PType = { value.checkType(vc, tp); tp }
 }
 
-sealed trait BoundExpression
+sealed trait BoundExpression {
+  def getType(vc: VariableContext): NComputation
+}
 
 object BoundExpression extends Parseable[BoundExpression] {
   override def parse(pc: ParseContext): BoundExpression = {
@@ -104,9 +136,35 @@ object BoundExpression extends Parseable[BoundExpression] {
 
 case class BEApplication(head: Head, spine: Vector[Value])(val token: Token) extends BoundExpression {
   override def toString: String = s"$head(${spine.mkString(",")})"
+
+  // Unref => App
+  override def getType(vc: VariableContext): NComputation = {
+    val headType = head.getType(vc)
+    headType match {
+      case PSuspended(tp) => {
+        // need to check: Γ; [$tp] ⊢ $spine ≫ ↑P
+        // UnrefSpineApp
+        val res = spine.foldLeft(tp)((t: NType, v: Value) => t match {
+          case NFunction(arg, body) => { v.checkType(vc, arg); body }
+          case _ => throw TypeException(s"too many arguments")
+        })
+        // UnrefSpineNil
+        res match {
+          case comp: NComputation => comp
+          case _ => throw TypeException(s"too few arguments")
+        }
+      }
+      case _ => throw TypeException(s"type '$headType' is not a suspended computation")
+    }
+  }
 }
 case class BEExpression(exp: Expression, tp: PType)(val token: Token) extends BoundExpression {
-  override def toString: String = s"($exp : ↑$tp)"
+  val resultType: NComputation = NComputation(tp)
+
+  override def toString: String = s"($exp : $resultType)"
+
+  // Unref => ExpAnnot
+  override def getType(vc: VariableContext): NComputation = { exp.checkType(vc, resultType); resultType }
 }
 
 sealed trait Pattern

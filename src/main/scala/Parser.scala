@@ -6,6 +6,9 @@ private def isIdentifierChar(c: Character): Boolean = {
 
 case class ParseException(msg: String) extends Exception(msg)
 
+// TODO different file?
+case class TypeException(msg: String) extends Exception(msg)
+
 sealed trait ParseContext {
   def peek() : Token
   def pop() : Token
