@@ -27,6 +27,7 @@ enum Tk(val text: String):
   case Up extends Tk("↑")
   case Down extends Tk("↓")
   case Right extends Tk("→")
+  case DRight extends Tk("⇒")
   case And extends Tk("∧")
   case Or extends Tk("∨")
   case ForAll extends Tk("∀")
@@ -63,6 +64,7 @@ object Tk {
     case "↑" | "^" => Up
     case "↓" | "V" => Down
     case "→" | "~" => Right
+    case "⇒" | "'" => DRight
     case "∧" | "&" => And
     case "∨" | "|" => Or
     case "∀" | "A" => ForAll

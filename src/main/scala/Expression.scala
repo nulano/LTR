@@ -16,7 +16,11 @@ object Expression extends Parseable[Expression] {
         val body = Expression.parse(pc)
         ExpLet(variable, bound, body)(tok)
       }
-      // TODO Tk.Match
+      case Tk.Match => {
+        val head = Head.parse(pc)
+        val clauses = Pattern.parse(pc)
+        ExpMatch(head, clauses)(tok)
+      }
       case Tk.Lambda => {
         val variable = pc.pop(Tk.Var).text
         pc.pop(Tk.Dot)
@@ -52,7 +56,13 @@ case class ExpLet(variable: String, value: BoundExpression, body: Expression)(va
   override def checkType(vc: VariableContext, tp: NType): Unit =
     body.checkType(vc.add(variable, value.getType(vc).result), tp)
 }
-// TODO case class ExpMatch(tk: Token, ) {}
+case class ExpMatch(head: Head, clauses: Pattern)(val token: Token) extends Expression {
+  override def toString: String = s"match $head {$clauses}"
+
+  // Unref <= match
+  override def checkType(vc: VariableContext, tp: NType): Unit =
+    clauses.checkType(vc, head.getType(vc), tp)
+}
 case class ExpFunction(variable: String, body: Expression)(val token: Token) extends Expression {
   override def toString: String = s"λ$variable . $body"
 
@@ -68,6 +78,7 @@ case class ExpRecursive(variable: String, tp: NType, body: Expression)(val token
   // Unref <= rec
   override def checkType(vc: VariableContext, tp: NType): Unit =
     body.checkType(vc.add(variable, PSuspended(tp)), tp)
+  // TODO ^^ does not use the type declaration used for the variable (related to type erasure)
 }
 
 sealed trait Head {
@@ -167,51 +178,117 @@ case class BEExpression(exp: Expression, tp: PType)(val token: Token) extends Bo
   override def getType(vc: VariableContext): NComputation = { exp.checkType(vc, resultType); resultType }
 }
 
-sealed trait Pattern
+// TODO maybe rename? encapsulates all clauses of a match block
+sealed trait Pattern {
+  def checkType(vc: VariableContext, head: PType, tp: NType): Unit
+}
 
 object Pattern extends Parseable[Pattern] {
   override def parse(pc: ParseContext): Pattern = {
-    val tok = pc.pop()
-    tok.tk match {
+    val tok = pc.pop(Tk.LBrace)
+    pc.pop().tk match {
+      case Tk.RBrace => PatVoid()(tok)
       case Tk.LAngle => {
         if pc.peek().tk == Tk.RAngle then {
           pc.pop(Tk.RAngle)
-          PatUnit()(tok)
+          pc.pop(Tk.DRight)
+          val body = Expression.parse(pc)
+          pc.pop(Tk.RBrace)
+          PatUnit(body)(tok)
         } else {
           val left = pc.pop(Tk.Var).text
           pc.pop(Tk.Comma)
           val right = pc.pop(Tk.Var).text
           pc.pop(Tk.RAngle)
-          PatPair(left, right)(tok)
+          pc.pop(Tk.DRight)
+          val body = Expression.parse(pc)
+          pc.pop(Tk.RBrace)
+          PatProd(left, right, body)(tok)
         }
       }
-      case Tk.Inl => PatInl(pc.pop(Tk.Var).text)(tok)
-      case Tk.Inr => PatInr(pc.pop(Tk.Var).text)(tok)
+      case Tk.Inl => {
+        val left = pc.pop(Tk.Var).text
+        pc.pop(Tk.DRight)
+        val leftBody = Expression.parse(pc)
+        pc.pop(Tk.Or)
+        pc.pop(Tk.Inr)
+        val right = pc.pop(Tk.Var).text
+        pc.pop(Tk.DRight)
+        val rightBody = Expression.parse(pc)
+        pc.pop(Tk.RBrace)
+        PatSum(left, leftBody, right, rightBody)(tok)
+      }
+      case Tk.Inr => {
+        val right = pc.pop(Tk.Var).text
+        pc.pop(Tk.DRight)
+        val rightBody = Expression.parse(pc)
+        pc.pop(Tk.Or)
+        pc.pop(Tk.Inl)
+        val left = pc.pop(Tk.Var).text
+        pc.pop(Tk.DRight)
+        val leftBody = Expression.parse(pc)
+        pc.pop(Tk.RBrace)
+        PatSum(left, leftBody, right, rightBody)(tok)
+      }
       case Tk.Into => {
         pc.pop(Tk.LParen)
         val variable = pc.pop(Tk.Var).text
         pc.pop(Tk.RParen)
-        PatInto(variable)(tok)
+        pc.pop(Tk.DRight)
+        val body = Expression.parse(pc)
+        pc.pop(Tk.RBrace)
+        PatInto(variable, body)(tok)
       }
-      case _ => throw ParseException(s"not a pattern: $tok")
+      case t => throw ParseException(s"not a pattern: ${t.text}")
     }
   }
 }
 
-case class PatInto(variable: String)(val token: Token) extends Pattern {
-  override def toString: String = s"into($variable)"
+case class PatVoid()(val token: Token) extends Pattern {
+  override def toString: String = "{}"
+
+  // UnrefMatch0
+  override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
+    case PVoid() => ()
+    case _ => throw TypeException(s"{$this} pattern does not match $head")
+  }
 }
-case class PatUnit()(val token: Token) extends Pattern {
-  override def toString: String = "<>"
+
+case class PatInto(variable: String, body: Expression)(val token: Token) extends Pattern {
+  override def toString: String = s"{into($variable) ⇒ $body}"
+
+  // Unref MatchInto
+  override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
+    // TODO case ??? => ???
+    case _ => throw TypeException(s"{$this} pattern does not match $head")
+  }
 }
-case class PatPair(left: String, right: String)(val token: Token) extends Pattern {
-  override def toString: String = s"<$left, $right>"
+case class PatUnit(body: Expression)(val token: Token) extends Pattern {
+  override def toString: String = s"{<> ⇒ $body}"
+
+  // UnrefMatch1
+  override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
+    case PUnit() => body.checkType(vc, tp)
+    case _ => throw TypeException(s"{$this} pattern does not match $head")
+  }
 }
-case class PatInl(left: String)(val token: Token) extends Pattern {
-  override def toString: String = s"inl $left"
+case class PatProd(left: String, right: String, body: Expression)(val token: Token) extends Pattern {
+  override def toString: String = s"{<$left, $right> ⇒ $body}"
+
+  // UnrefMatch×
+  override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
+    case PProd(l, r) => body.checkType(vc.add(left, l).add(right, r), tp)
+    case _ => throw TypeException(s"{$this} pattern does not match $head")
+  }
 }
-case class PatInr(right: String)(val token: Token) extends Pattern {
-  override def toString: String = s"inr $right"
+case class PatSum(left: String, leftBody: Expression, right: String, rightBody: Expression)(val token: Token) extends Pattern {
+  override def toString: String = s"{inl $left ⇒ $leftBody | inr $right ⇒ $rightBody}"
+
+  // UnrefMatch+
+  override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
+    case PSum(l, r) => { leftBody.checkType(vc.add(left, l), tp); rightBody.checkType(vc.add(right, r), tp) }
+    case _ => throw TypeException(s"{$this} pattern does not match $head")
+  }
 }
 
 
