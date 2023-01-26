@@ -21,7 +21,7 @@ object NType extends Parseable[NType] {
         NForAll(idx.text, sort.text, tp)
       }
       // TODO case ??? => NPrecondition
-      case _ => throw ParseException(s"not an n-type: ${tok.tk}")
+      case _ => throw ParseException(s"not an n-type: ${tok.text}")
     }
   }
 }

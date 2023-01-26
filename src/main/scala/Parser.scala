@@ -48,7 +48,7 @@ class StringParseContext(val text: String) extends ParseContext {
   private def readWord(): String = {
     if !isIdentifierChar(text.charAt(index)) then text.substring(index, index + 1) else {
       var end = index + 1
-      while end < text.length & isIdentifierChar(text.charAt(end)) do end += 1
+      while end < text.length && isIdentifierChar(text.charAt(end)) do end += 1
       text.substring(index, end)
     }
   }

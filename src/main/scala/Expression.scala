@@ -57,7 +57,7 @@ case class ExpLet(variable: String, value: BoundExpression, body: Expression)(va
     body.checkType(vc.add(variable, value.getType(vc).result), tp)
 }
 case class ExpMatch(head: Head, clauses: Pattern)(val token: Token) extends Expression {
-  override def toString: String = s"match $head {$clauses}"
+  override def toString: String = s"match $head $clauses"
 
   // Unref <= match
   override def checkType(vc: VariableContext, tp: NType): Unit =
@@ -135,9 +135,8 @@ object BoundExpression extends Parseable[BoundExpression] {
       pc.pop(Tk.LParen)
       val spine = new collection.immutable.VectorBuilder[Value]()
       while pc.peek().tk != Tk.RParen do {
-        val v = Value.parse(pc)
+        spine += Value.parse(pc)
         pc.pop(Tk.Comma)
-        spine += v
       }
       pc.pop(Tk.RParen)
       BEApplication(head, spine.result())(tok)
