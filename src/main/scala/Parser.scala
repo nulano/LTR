@@ -1,8 +1,4 @@
-import scala.collection.mutable
-
-private def isIdentifierChar(c: Character): Boolean = {
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".contains(c)
-}
+//import scala.collection.mutable
 
 sealed trait ParseLocation {
   def caused(msg: String): String = s"msg, at $this"
@@ -61,36 +57,28 @@ trait Parseable[T] {
 class StringParseContext(val text: String) extends ParseContext {
   private var index = 0
 
-  private def skipWhitespace(): Unit = {
-    while index < text.length && " \t\n\r".contains(text.charAt(index)) do index += 1
-  }
+  private case class StringLocation(start: Int, end: Int) extends ParseLocation {
+    val length: Int = end - start
 
-  private def readWord(): String = {
-    if !isIdentifierChar(text.charAt(index)) then text.substring(index, index + 1) else {
-      var end = index + 1
-      while end < text.length && isIdentifierChar(text.charAt(end)) do end += 1
-      text.substring(index, end)
-    }
-  }
-
-  private case class StringLocation(i: Int, j: Int) extends ParseLocation {
-    override def toString: String = s"input:${i+1}"
+    override def toString: String = s"input:${start + 1}"
 
     override def caused(msg: String): String =
-      s"$msg, at $this\n    $text\n    ${" " * i}${"^" * j}"
+      s"$msg, at $this\n    $text\n    ${" " * start}${"^" * length}"
   }
 
   override def peek(): Token = {
-    skipWhitespace()
-    if index >= text.length then
-      throw ParseException("unexpected EOF", StringLocation(index, 4))
-    val word = readWord()
-    Token(Tk.get(word), word, StringLocation(index, word.length))
+    Tk.regex.findPrefixMatchOf(text.substring(index)) match
+      case None => throw ParseException("unexpected EOF", StringLocation(index, text.length + 4))
+      case Some(m) => {
+        val word = m.group(1)
+        val loc = StringLocation(index + m.start(1), index + m.end(1))
+        Token(Tk.get(word), word, loc)
+      }
   }
 
   override def pop(): Token = {
     val tok = peek()
-    index += tok.text.length
+    index = tok.loc.asInstanceOf[StringLocation].end
     tok
   }
 }

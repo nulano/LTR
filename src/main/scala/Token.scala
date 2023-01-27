@@ -1,3 +1,4 @@
+import scala.util.matching.Regex
 
 enum Tk(val text: String):
   case Return extends Tk("return")
@@ -36,6 +37,8 @@ enum Tk(val text: String):
   case Var extends Tk("<VAR>")
 
 object Tk {
+  val regex = new Regex(raw"[ \t\r\n]*+(->|=>|[a-z]++|.)", "token")
+
   def get(text: String): Tk = text match {
     case "return" => Return
     case "let" => Let
@@ -63,8 +66,8 @@ object Tk {
     case "λ" | "fun" => Lambda
     case "↑" | "^" => Up
     case "↓" | "V" => Down
-    case "→" | "~" => Right
-    case "⇒" | "'" => DRight
+    case "→" | "~" | "->" => Right
+    case "⇒" | "'" | "=>" => DRight
     case "∧" | "&" => And
     case "∨" | "|" => Or
     case "∀" | "A" => ForAll
