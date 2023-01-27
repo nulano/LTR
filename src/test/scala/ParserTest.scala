@@ -1,12 +1,27 @@
+import scala.reflect.ClassTag
+
 import org.scalatest.freespec.AnyFreeSpec
 
 class ParserTest extends AnyFreeSpec {
 
-  private inline def roundtrip[T](parseable: Parseable[T], string: String): Unit = {
-    s"${parseable.getClass.getName.replace("$", "")} should roundtrip '$string'" in {
+  private inline def roundtrip[T](parseable: Parseable[? >: T], string: String)(implicit tp: ClassTag[T]): Unit = {
+    s"${parseable.getClass.getName.replace("$", "")} should roundtrip '$string' as $tp" in {
       val pc = StringParseContext(string)
       val v = parseable.parse(pc)
       assert(v.toString == string)
+      assert(tp.runtimeClass.isAssignableFrom(v.getClass), s"wrong result type: expected $tp, got ${v.getClass.getName}")
+    }
+  }
+
+  private inline def roundtripMatch[T <: Pattern](string: String)(implicit tp: ClassTag[T]): Unit = {
+    s"Expression should roundtrip '$string' as ExpMatch with $tp" in {
+      val pc = StringParseContext(string)
+      val v = Expression.parse(pc)
+      assert(v.toString == string)
+      v match {
+        case ExpMatch(_, clauses) => assert(tp.runtimeClass.isAssignableFrom(clauses.getClass), s"wrong clauses type: expected $tp, got ${v.getClass.getName}")
+        case _ => fail(s"wrong result type: expected ExpMatch, got ${v.getClass.getName}")
+      }
     }
   }
 
@@ -18,51 +33,56 @@ class ParserTest extends AnyFreeSpec {
     }
   }
 
-  roundtrip(Value, "foo")
-  roundtrip(Value, "<>")
-  roundtrip(Value, "<foo, bar>")
-  roundtrip(Value, "inl foo")
-  roundtrip(Value, "inr bar")
-  roundtrip(Value, "into(baz)")
-  roundtrip(Value, "{return hello}")
+  roundtrip[ValVariable](Value, "foo")
+  roundtrip[ValUnit](Value, "<>")
+  roundtrip[ValPair](Value, "<foo, bar>")
+  roundtrip[ValLeft](Value, "inl foo")
+  roundtrip[ValRight](Value, "inr bar")
+  roundtrip[ValInto](Value, "into(baz)")
+  roundtrip[ValExpression](Value, "{return hello}")
   raise(Value, "<", "unexpected EOF")
   raise(Value, "return <>", "unexpected 'return' (expecting a value)")
 
-  roundtrip(Head, "foo")
-  roundtrip(Head, "[<> : 1]")
+  roundtrip[HeadVariable](Head, "foo")
+  roundtrip[HeadValue](Head, "[<> : 1]")
   raise(Head, "(return <> : ↑1)", "unexpected '(' (expecting a head)")
 
-  roundtrip(BoundExpression, "foo()")
-  roundtrip(BoundExpression, "foo(bar)")
-  roundtrip(BoundExpression, "foo(bar,baz)")
-  roundtrip(BoundExpression, "[{λx . return x} : ↓(1 → ↑1)](<>)")
-  roundtrip(BoundExpression, "(return <> : ↑1)")
+  roundtrip[BEApplication](BoundExpression, "foo()")
+  roundtrip[BEApplication](BoundExpression, "foo(bar)")
+  roundtrip[BEApplication](BoundExpression, "foo(bar,baz)")
+  roundtrip[BEApplication](BoundExpression, "[{λx . return x} : ↓(1 → ↑1)](<>)")
+  roundtrip[BEExpression](BoundExpression, "(return <> : ↑1)")
   raise(BoundExpression, "<>", "unexpected '<' (expecting a head)")
   raise(BoundExpression, "[<> : 1]", "unexpected EOF")
+  raise(BoundExpression, "foo(,)", "unexpected ',' (expecting a value)")
+  raise(BoundExpression, "foo(bar,)", "unexpected ')' (expecting a value)")
+  raise(BoundExpression, "foo(bar,baz,)", "unexpected ')' (expecting a value)")
+  raise(BoundExpression, "foo(bar,,baz)", "unexpected ',' (expecting a value)")
+  raise(BoundExpression, "foo(bar baz)", "unexpected 'baz' (expecting ',' or ')')")
 
-  roundtrip(Expression, "return <>")
-  roundtrip(Expression, "let x = (return <> : ↑1); return x")
-  roundtrip(Expression, "match x {}")
-  roundtrip(Expression, "match x {<> ⇒ return y}")
-  roundtrip(Expression, "match x {<l, r> ⇒ return <r, l>}")
-  roundtrip(Expression, "match x {inl l ⇒ return l | inr r ⇒ return r}")
-  roundtrip(Expression, "match x {into(y) ⇒ return y}")
-  roundtrip(Expression, "λx . return <x, x>")
-  roundtrip(Expression, "rec x : (1 → ↑1) . λy . let z = x(y); return z")
+  roundtrip[ExpReturn](Expression, "return <>")
+  roundtrip[ExpLet](Expression, "let x = (return <> : ↑1); return x")
+  roundtripMatch[PatVoid]("match x {}")
+  roundtripMatch[PatUnit]("match x {<> ⇒ return y}")
+  roundtripMatch[PatProd]("match x {<l, r> ⇒ return <r, l>}")
+  roundtripMatch[PatSum]("match x {inl l ⇒ return l | inr r ⇒ return r}")
+  roundtripMatch[PatInto]("match x {into(y) ⇒ return y}")
+  roundtrip[ExpFunction](Expression, "λx . return <x, x>")
+  roundtrip[ExpRecursive](Expression, "rec x : (1 → ↑1) . λy . let z = x(y); return z")
   raise(Expression, "{return <>}", "unexpected '{' (expecting an expression)")
 
-  roundtrip(PType, "0")
-  roundtrip(PType, "1")
-  roundtrip(PType, "(1 × 0)")
-  roundtrip(PType, "(0 + 1)")
-  roundtrip(PType, "↓↑1")
+  roundtrip[PVoid](PType, "0")
+  roundtrip[PUnit](PType, "1")
+  roundtrip[PProd](PType, "(1 × 0)")
+  roundtrip[PSum](PType, "(0 + 1)")
+  roundtrip[PSuspended](PType, "↓↑1")
   // TODO roundtrip(PType, "{???}")
   // TODO roundtrip(PType, "∃a : τ . 1")
   // TODO roundtrip(PType, "(1 ∧ ψ)")
 
-  roundtrip(NType, "↑1")
-  roundtrip(NType, "(1 → ↑1)")
-  roundtrip(NType, "(1 → (1 → ↑1))")
+  roundtrip[NComputation](NType, "↑1")
+  roundtrip[NFunction](NType, "(1 → ↑1)")
+  roundtrip[NFunction](NType, "(1 → (1 → ↑1))")
   // TODO roundtrip(PType, "∀a : τ . 1")
   // TODO roundtrip(PType, "(ψ ⊃ ↑1)")
 

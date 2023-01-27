@@ -134,11 +134,13 @@ object BoundExpression extends Parseable[BoundExpression] {
       val head = Head.parse(pc)  // TODO custom exception?
       pc.pop(Tk.LParen)
       val spine = new collection.immutable.VectorBuilder[Value]()
-      while pc.peek().tk != Tk.RParen do {
+      if pc.peek().tk == Tk.RParen then {
+        pc.pop(Tk.RParen)
+      } else {
         spine += Value.parse(pc)
-        pc.pop(Tk.Comma)
+        while pc.pop(Tk.Comma, Tk.RParen).tk == Tk.Comma do
+          spine += Value.parse(pc)
       }
-      pc.pop(Tk.RParen)
       BEApplication(head, spine.result())(tok)
     }
   }
