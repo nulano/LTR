@@ -41,14 +41,14 @@ object Value extends Parseable[Value] {
 case class ValVariable(variable: String)(val token: Token) extends Value {
   override def toString: String = variable
 
-  // Unref <= Var
+  // Unref ⇐ Var
   override def checkType(vc: VariableContext, tp: PType): Unit =
     if !vc.check(variable, tp) then throw TypeException(s"variable $variable does not have required type $tp")
 }
 case class ValUnit()(val token: Token) extends Value {
   override def toString: String = "<>"
 
-  // Unref <= 1
+  // Unref ⇐ 1
   override def checkType(vc: VariableContext, tp: PType): Unit = tp match {
     case PUnit() => ()
     case _ => throw TypeException(s"$this does not have required type $tp")
@@ -57,7 +57,7 @@ case class ValUnit()(val token: Token) extends Value {
 case class ValPair(left: Value, right: Value)(val token: Token) extends Value {
   override def toString: String = s"<$left, $right>"
 
-  // Unref <= ×
+  // Unref ⇐ ×
   override def checkType(vc: VariableContext, tp: PType): Unit = tp match {
     case PProd(l, r) => left.checkType(vc, l); right.checkType(vc, r)
     case _ => throw TypeException(s"$this does not have required type $tp")
@@ -66,7 +66,7 @@ case class ValPair(left: Value, right: Value)(val token: Token) extends Value {
 case class ValLeft(value: Value)(val token: Token) extends Value {
   override def toString: String = s"inl $value"
 
-  // Unref <= +_1
+  // Unref ⇐ +₁
   override def checkType(vc: VariableContext, tp: PType): Unit = tp match {
     case PSum(l, _) => value.checkType(vc, l)
     case _ => throw TypeException(s"$this does not have required type $tp")
@@ -75,7 +75,7 @@ case class ValLeft(value: Value)(val token: Token) extends Value {
 case class ValRight(value: Value)(val token: Token) extends Value {
   override def toString: String = s"inr $value"
 
-  // Unref <= +_2
+  // Unref ⇐ +₂
   override def checkType(vc: VariableContext, tp: PType): Unit = tp match {
     case PSum(_, r) => value.checkType(vc, r)
     case _ => throw TypeException(s"$this does not have required type $tp")
@@ -84,11 +84,17 @@ case class ValRight(value: Value)(val token: Token) extends Value {
 case class ValInto(value: Value)(val token: Token) extends Value {
   override def toString: String = s"into($value)"
 
-  override def checkType(vc: VariableContext, tp: PType): Unit = throw TypeException("TODO") // TODO
+  // Unref ⇐ μ
+  override def checkType(vc: VariableContext, tp: PType): Unit = tp match {
+    case ind: PInductive => value.checkType(vc, ind.unroll)
+    case _ => throw TypeException(s"$this does not have required type $tp")
+  }
+
 }
 case class ValExpression(expression: Expression)(val token: Token) extends Value {
   override def toString: String = s"{$expression}"
 
+  // Unref ⇐ ↓
   override def checkType(vc: VariableContext, tp: PType): Unit = tp match {
     case PSuspended(t) => expression.checkType(vc, t)
     case _ => throw TypeException(s"$this does not have required type $tp")

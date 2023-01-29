@@ -114,7 +114,7 @@ object MatchPattern extends Parseable[MatchPattern] {
         val left = pc.pop(Tk.Var).text
         pc.pop(Tk.DRight)
         val leftBody = Expression.parse(pc)
-        pc.pop(Tk.Or)
+        pc.pop(Tk.DBar)
         pc.pop(Tk.Inr)
         val right = pc.pop(Tk.Var).text
         pc.pop(Tk.DRight)
@@ -154,7 +154,7 @@ case class MPVoid()(val token: Token) extends MatchPattern {
   // UnrefMatch0
   override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
     case PVoid() => ()
-    case _ => throw TypeException(s"{$this} pattern does not match $head")
+    case _ => throw TypeException(s"$this pattern does not match $head")
   }
 }
 
@@ -163,8 +163,8 @@ case class MPInto(variable: String, body: Expression)(val token: Token) extends 
 
   // Unref MatchInto
   override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
-    // TODO case ??? ⇒ ???
-    case _ => throw TypeException(s"{$this} pattern does not match $head")
+    case ind: PInductive => body.checkType(vc.add(variable, ind.unroll), tp)
+    case _ => throw TypeException(s"$this pattern does not match $head")
   }
 }
 case class MPUnit(body: Expression)(val token: Token) extends MatchPattern {
@@ -173,7 +173,7 @@ case class MPUnit(body: Expression)(val token: Token) extends MatchPattern {
   // UnrefMatch1
   override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
     case PUnit() => body.checkType(vc, tp)
-    case _ => throw TypeException(s"{$this} pattern does not match $head")
+    case _ => throw TypeException(s"$this pattern does not match $head")
   }
 }
 case class MPProd(left: String, right: String, body: Expression)(val token: Token) extends MatchPattern {
@@ -182,16 +182,16 @@ case class MPProd(left: String, right: String, body: Expression)(val token: Toke
   // UnrefMatch×
   override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
     case PProd(l, r) => body.checkType(vc.add(left, l).add(right, r), tp)
-    case _ => throw TypeException(s"{$this} pattern does not match $head")
+    case _ => throw TypeException(s"$this pattern does not match $head")
   }
 }
 case class MPSum(left: String, leftBody: Expression, right: String, rightBody: Expression)(val token: Token) extends MatchPattern {
-  override def toString: String = s"{inl $left ⇒ $leftBody | inr $right ⇒ $rightBody}"
+  override def toString: String = s"{inl $left ⇒ $leftBody ‖ inr $right ⇒ $rightBody}"
 
   // UnrefMatch+
   override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
     case PSum(l, r) => { leftBody.checkType(vc.add(left, l), tp); rightBody.checkType(vc.add(right, r), tp) }
-    case _ => throw TypeException(s"{$this} pattern does not match $head")
+    case _ => throw TypeException(s"$this pattern does not match $head")
   }
 }
 

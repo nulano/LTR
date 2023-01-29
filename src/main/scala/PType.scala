@@ -23,14 +23,22 @@ object PType extends Parseable[PType] {
         }
       }
       case Tk.Down => PSuspended(NType.parse(pc))
-      // TODO case Tk.LBrace => ...
+      // TODO case Tk.LBrace => PInductive(...)
+      case Tk.Mu => {
+        val fun = FunctorSum.parse(pc)
+        pc.pop(Tk.Superset)
+        val alg = pc.pop(Tk.Var).text // TODO
+        pc.pop(Tk.DRight)
+        val idx = pc.pop(Tk.Var).text // TODO
+        PInductive(fun, alg, idx)
+      }
       case Tk.Exists => {
-        val idx = pc.pop(Tk.Var)
+        val idx = pc.pop(Tk.Var).text
         pc.pop(Tk.Colon)
-        val sort = pc.pop(Tk.Var)  // TODO
+        val sort = Sort.parse(pc)
         pc.pop(Tk.Dot)
         val tp = PType.parse(pc)
-        PExists(idx.text, sort.text, tp)
+        PExists(idx, sort, tp)
       }
       case _ => throw UnexpectedTokenParseException(tok, "a positive type")
     }
@@ -52,9 +60,14 @@ case class PSum(left: PType, right: PType) extends PType {
 case class PSuspended(tp: NType) extends PType {
   override def toString: String = s"↓$tp"
 }
-// TODO case class PInductive(???)
-// TODO sort type
-case class PExists(idx: String, sort: String, tp: PType) extends PType {
+// TODO algebra, index types
+case class PInductive(functor: FunctorSum, algebra: String, idx: String) extends PType {
+  // TODO actual string is s"{v : μ$functor | (fold_$functor $algebra) v =_τ $idx}"
+  override def toString: String = s"μ$functor ⊃ $algebra ⇒ $idx"
+  
+  def unroll: PType = functor.unroll(this)
+}
+case class PExists(idx: String, sort: Sort, tp: PType) extends PType {
   override def toString: String = s"∃$idx : $sort . $tp"
 }
 // TODO proposition type

@@ -13,12 +13,12 @@ object NType extends Parseable[NType] {
       }
       case Tk.Up => NComputation(PType.parse(pc))
       case Tk.ForAll => {
-        val idx = pc.pop(Tk.Var)
+        val idx = pc.pop(Tk.Var).text
         pc.pop(Tk.Colon)
-        val sort = pc.pop(Tk.Var) // TODO
+        val sort = Sort.parse(pc)
         pc.pop(Tk.Dot)
         val tp = NType.parse(pc)
-        NForAll(idx.text, sort.text, tp)
+        NForAll(idx, sort, tp)
       }
       // TODO case ??? => NPrecondition
       case _ => throw UnexpectedTokenParseException(tok, "a negative type")
@@ -32,8 +32,7 @@ case class NFunction(arg: PType, body: NType) extends NType {
 case class NComputation(result: PType) extends NType {
   override def toString: String = s"↑$result"
 }
-// TODO sort class
-case class NForAll(idx: String, sort: String, tp: NType) extends NType {
+case class NForAll(idx: String, sort: Sort, tp: NType) extends NType {
   override def toString: String = s"∀$idx : $sort . $tp"
 }
 // TODO proposition class
