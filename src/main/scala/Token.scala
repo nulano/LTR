@@ -33,7 +33,7 @@ enum Tk(val text: String):
   case Or extends Tk("∨")
   case ForAll extends Tk("∀")
   case Exists extends Tk("∃")
-  // TODO ??? "⊃"
+  case Superset extends Tk("⊃")
   case Var extends Tk("<VAR>")
 
 object Tk {
@@ -44,8 +44,8 @@ object Tk {
     case "let" => Let
     case "match" => Match
     case "rec" => Rec
-    case "inl" | "inj1" => Inl
-    case "inr" | "inj2" => Inr
+    case "inl" | "inj1" | "inj₁" => Inl
+    case "inr" | "inj2" | "inj₂" => Inr
     case "into" => Into
     case "." => Dot
     case "," => Comma
@@ -72,7 +72,7 @@ object Tk {
     case "∨" | "|" => Or
     case "∀" | "A" => ForAll
     case "∃" | "E" => Exists
-    // TODO case "⊃" | ?? => ??
+    case "⊃" | "S" => Superset
     case _ => Var
   }
 }

@@ -18,7 +18,7 @@ object Expression extends Parseable[Expression] {
       }
       case Tk.Match => {
         val head = Head.parse(pc)
-        val clauses = Pattern.parse(pc)
+        val clauses = MatchPattern.parse(pc)
         ExpMatch(head, clauses)(tok)
       }
       case Tk.Lambda => {
@@ -56,7 +56,7 @@ case class ExpLet(variable: String, value: BoundExpression, body: Expression)(va
   override def checkType(vc: VariableContext, tp: NType): Unit =
     body.checkType(vc.add(variable, value.getType(vc).result), tp)
 }
-case class ExpMatch(head: Head, clauses: Pattern)(val token: Token) extends Expression {
+case class ExpMatch(head: Head, clauses: MatchPattern)(val token: Token) extends Expression {
   override def toString: String = s"match $head $clauses"
 
   // Unref <= match
@@ -81,122 +81,24 @@ case class ExpRecursive(variable: String, tp: NType, body: Expression)(val token
   // TODO ^^ does not use the type declaration used for the variable (related to type erasure)
 }
 
-sealed trait Head {
-  def getType(vc: VariableContext): PType
-}
-
-object Head extends Parseable[Head] {
-  override def parse(pc: ParseContext): Head = {
-    val tok = pc.pop()
-    tok.tk match {
-      case Tk.Var => HeadVariable(tok.text)(tok)
-      case Tk.LSquare => {
-        val v = Value.parse(pc)
-        pc.pop(Tk.Colon)
-        val tp = PType.parse(pc)
-        pc.pop(Tk.RSquare)
-        HeadValue(v, tp)(tok)
-      }
-      case _ => throw UnexpectedTokenParseException(tok, "a head")
-    }
-  }
-}
-
-case class HeadVariable(variable: String)(val token: Token) extends Head {
-  override def toString: String = variable
-
-  // Unref => Var
-  override def getType(vc: VariableContext): PType = vc.find(variable).get
-}
-case class HeadValue(value: Value, tp: PType)(val token: Token) extends Head {
-  override def toString: String = s"[$value : $tp]"
-
-  // Unref => ValAnnot
-  override def getType(vc: VariableContext): PType = { value.checkType(vc, tp); tp }
-}
-
-sealed trait BoundExpression {
-  def getType(vc: VariableContext): NComputation
-}
-
-object BoundExpression extends Parseable[BoundExpression] {
-  override def parse(pc: ParseContext): BoundExpression = {
-    val tok = pc.peek()
-    if tok.tk == Tk.LParen then {
-      pc.pop(Tk.LParen)
-      val exp = Expression.parse(pc)
-      pc.pop(Tk.Colon)
-      pc.pop(Tk.Up)
-      val tp = PType.parse(pc)
-      pc.pop(Tk.RParen)
-      BEExpression(exp, tp)(tok)
-    } else {
-      val head = Head.parse(pc)  // TODO custom exception?
-      pc.pop(Tk.LParen)
-      val spine = new collection.immutable.VectorBuilder[Value]()
-      if pc.peek().tk == Tk.RParen then {
-        pc.pop(Tk.RParen)
-      } else {
-        spine += Value.parse(pc)
-        while pc.pop(Tk.Comma, Tk.RParen).tk == Tk.Comma do
-          spine += Value.parse(pc)
-      }
-      BEApplication(head, spine.result())(tok)
-    }
-  }
-}
-
-case class BEApplication(head: Head, spine: Vector[Value])(val token: Token) extends BoundExpression {
-  override def toString: String = s"$head(${spine.mkString(",")})"
-
-  // Unref => App
-  override def getType(vc: VariableContext): NComputation = {
-    val headType = head.getType(vc)
-    headType match {
-      case PSuspended(tp) => {
-        // need to check: Γ; [$tp] ⊢ $spine ≫ ↑P
-        // UnrefSpineApp
-        val res = spine.foldLeft(tp)((t: NType, v: Value) => t match {
-          case NFunction(arg, body) => { v.checkType(vc, arg); body }
-          case _ => throw TypeException(s"too many arguments")
-        })
-        // UnrefSpineNil
-        res match {
-          case comp: NComputation => comp
-          case _ => throw TypeException(s"too few arguments")
-        }
-      }
-      case _ => throw TypeException(s"type '$headType' is not a suspended computation")
-    }
-  }
-}
-case class BEExpression(exp: Expression, tp: PType)(val token: Token) extends BoundExpression {
-  val resultType: NComputation = NComputation(tp)
-
-  override def toString: String = s"($exp : $resultType)"
-
-  // Unref => ExpAnnot
-  override def getType(vc: VariableContext): NComputation = { exp.checkType(vc, resultType); resultType }
-}
-
 // TODO maybe rename? encapsulates all clauses of a match block
-sealed trait Pattern {
+sealed trait MatchPattern {
   def checkType(vc: VariableContext, head: PType, tp: NType): Unit
 }
 
-object Pattern extends Parseable[Pattern] {
-  override def parse(pc: ParseContext): Pattern = {
+object MatchPattern extends Parseable[MatchPattern] {
+  override def parse(pc: ParseContext): MatchPattern = {
     val tok = pc.pop(Tk.LBrace)
     val tok2 = pc.pop()
     tok2.tk match {
-      case Tk.RBrace => PatVoid()(tok)
+      case Tk.RBrace => MPVoid()(tok)
       case Tk.LAngle => {
         if pc.peek().tk == Tk.RAngle then {
           pc.pop(Tk.RAngle)
           pc.pop(Tk.DRight)
           val body = Expression.parse(pc)
           pc.pop(Tk.RBrace)
-          PatUnit(body)(tok)
+          MPUnit(body)(tok)
         } else {
           val left = pc.pop(Tk.Var).text
           pc.pop(Tk.Comma)
@@ -205,7 +107,7 @@ object Pattern extends Parseable[Pattern] {
           pc.pop(Tk.DRight)
           val body = Expression.parse(pc)
           pc.pop(Tk.RBrace)
-          PatProd(left, right, body)(tok)
+          MPProd(left, right, body)(tok)
         }
       }
       case Tk.Inl => {
@@ -218,7 +120,7 @@ object Pattern extends Parseable[Pattern] {
         pc.pop(Tk.DRight)
         val rightBody = Expression.parse(pc)
         pc.pop(Tk.RBrace)
-        PatSum(left, leftBody, right, rightBody)(tok)
+        MPSum(left, leftBody, right, rightBody)(tok)
       }
       case Tk.Inr => {
         val right = pc.pop(Tk.Var).text
@@ -230,7 +132,7 @@ object Pattern extends Parseable[Pattern] {
         pc.pop(Tk.DRight)
         val leftBody = Expression.parse(pc)
         pc.pop(Tk.RBrace)
-        PatSum(left, leftBody, right, rightBody)(tok)
+        MPSum(left, leftBody, right, rightBody)(tok)
       }
       case Tk.Into => {
         pc.pop(Tk.LParen)
@@ -239,14 +141,14 @@ object Pattern extends Parseable[Pattern] {
         pc.pop(Tk.DRight)
         val body = Expression.parse(pc)
         pc.pop(Tk.RBrace)
-        PatInto(variable, body)(tok)
+        MPInto(variable, body)(tok)
       }
       case _ => throw UnexpectedTokenParseException(tok2, "a match pattern")
     }
   }
 }
 
-case class PatVoid()(val token: Token) extends Pattern {
+case class MPVoid()(val token: Token) extends MatchPattern {
   override def toString: String = "{}"
 
   // UnrefMatch0
@@ -256,16 +158,16 @@ case class PatVoid()(val token: Token) extends Pattern {
   }
 }
 
-case class PatInto(variable: String, body: Expression)(val token: Token) extends Pattern {
+case class MPInto(variable: String, body: Expression)(val token: Token) extends MatchPattern {
   override def toString: String = s"{into($variable) ⇒ $body}"
 
   // Unref MatchInto
   override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
-    // TODO case ??? => ???
+    // TODO case ??? ⇒ ???
     case _ => throw TypeException(s"{$this} pattern does not match $head")
   }
 }
-case class PatUnit(body: Expression)(val token: Token) extends Pattern {
+case class MPUnit(body: Expression)(val token: Token) extends MatchPattern {
   override def toString: String = s"{<> ⇒ $body}"
 
   // UnrefMatch1
@@ -274,7 +176,7 @@ case class PatUnit(body: Expression)(val token: Token) extends Pattern {
     case _ => throw TypeException(s"{$this} pattern does not match $head")
   }
 }
-case class PatProd(left: String, right: String, body: Expression)(val token: Token) extends Pattern {
+case class MPProd(left: String, right: String, body: Expression)(val token: Token) extends MatchPattern {
   override def toString: String = s"{<$left, $right> ⇒ $body}"
 
   // UnrefMatch×
@@ -283,7 +185,7 @@ case class PatProd(left: String, right: String, body: Expression)(val token: Tok
     case _ => throw TypeException(s"{$this} pattern does not match $head")
   }
 }
-case class PatSum(left: String, leftBody: Expression, right: String, rightBody: Expression)(val token: Token) extends Pattern {
+case class MPSum(left: String, leftBody: Expression, right: String, rightBody: Expression)(val token: Token) extends MatchPattern {
   override def toString: String = s"{inl $left ⇒ $leftBody | inr $right ⇒ $rightBody}"
 
   // UnrefMatch+

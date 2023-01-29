@@ -13,7 +13,7 @@ class ParserTest extends AnyFreeSpec {
     }
   }
 
-  private inline def roundtripMatch[T <: Pattern](string: String)(implicit tp: ClassTag[T]): Unit = {
+  private inline def roundtripMatch[T <: MatchPattern](string: String)(implicit tp: ClassTag[T]): Unit = {
     s"Expression should roundtrip '$string' as ExpMatch with $tp" in {
       val pc = StringParseContext(string)
       val v = Expression.parse(pc)
@@ -62,11 +62,11 @@ class ParserTest extends AnyFreeSpec {
 
   roundtrip[ExpReturn](Expression, "return <>")
   roundtrip[ExpLet](Expression, "let x = (return <> : ↑1); return x")
-  roundtripMatch[PatVoid]("match x {}")
-  roundtripMatch[PatUnit]("match x {<> ⇒ return y}")
-  roundtripMatch[PatProd]("match x {<l, r> ⇒ return <r, l>}")
-  roundtripMatch[PatSum]("match x {inl l ⇒ return l | inr r ⇒ return r}")
-  roundtripMatch[PatInto]("match x {into(y) ⇒ return y}")
+  roundtripMatch[MPVoid]("match x {}")
+  roundtripMatch[MPUnit]("match x {<> ⇒ return y}")
+  roundtripMatch[MPProd]("match x {<l, r> ⇒ return <r, l>}")
+  roundtripMatch[MPSum]("match x {inl l ⇒ return l | inr r ⇒ return r}")
+  roundtripMatch[MPInto]("match x {into(y) ⇒ return y}")
   roundtrip[ExpFunction](Expression, "λx . return <x, x>")
   roundtrip[ExpRecursive](Expression, "rec x : (1 → ↑1) . λy . let z = x(y); return z")
   raise(Expression, "{return <>}", "unexpected '{' (expecting an expression)")
