@@ -10,8 +10,10 @@ enum Tk(val text: String):
   case PLeft extends Tk("π₁")
   case PRight extends Tk("π₂")
   case Into extends Tk("into")
+  case Pack extends Tk("pack")
   case I extends Tk("I")
   case Id extends Tk("Id")
+  case Underscore extends Tk("_")
   case Dot extends Tk(".")
   case Comma extends Tk(",")
   case Colon extends Tk(":")
@@ -64,8 +66,10 @@ object Tk {
     case "L" | "π1" | "π₁" => PLeft
     case "R" | "π2" | "π₂" => PRight
     case "into" => Into
+    case "pack" => Pack
     case "I" => I
     case "Id" | "id" => Id
+    case "_" => Underscore
     case "." => Dot
     case "," => Comma
     case ":" => Colon

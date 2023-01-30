@@ -29,7 +29,7 @@ object PType extends Parseable[PType] {
       case Tk.Mu => {
         val fun = FunctorSum.parse(pc)
         pc.pop(Tk.Superset)
-        val alg = pc.pop(Tk.Var).text  // TODO
+        val alg = Algebra.parse(pc)
         pc.pop(Tk.DRight)
         val idx = Index.parse(pc)
         PInductive(fun, alg, idx)
@@ -62,8 +62,7 @@ case class PSum(left: PType, right: PType) extends PType {
 case class PSuspended(tp: NType) extends PType {
   override def toString: String = s"↓$tp"
 }
-// TODO algebra, index types
-case class PInductive(functor: FunctorSum, algebra: String, index: Index) extends PType {
+case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) extends PType {
   // TODO actual string is s"{v : μ$functor | (fold_$functor $algebra) v =_τ $idx}"
   override def toString: String = s"μ$functor ⊃ $algebra ⇒ $index"
 
