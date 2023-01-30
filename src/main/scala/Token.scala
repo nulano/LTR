@@ -7,6 +7,8 @@ enum Tk(val text: String):
   case Rec extends Tk("rec")
   case Inl extends Tk("inl")
   case Inr extends Tk("inr")
+  case PLeft extends Tk("π₁")
+  case PRight extends Tk("π₂")
   case Into extends Tk("into")
   case I extends Tk("I")
   case Id extends Tk("Id")
@@ -20,6 +22,7 @@ enum Tk(val text: String):
   case CPlus extends Tk("⊕")
   case CTimes extends Tk("⊗")
   case Eq extends Tk("=")
+  case Leq extends Tk("≤")
   case LParen extends Tk("(")
   case RParen extends Tk(")")
   case LBrace extends Tk("{")
@@ -37,16 +40,19 @@ enum Tk(val text: String):
   case DBar extends Tk("‖")
   case And extends Tk("∧")
   case Or extends Tk("∨")
+  case Not extends Tk("¬")
   case ForAll extends Tk("∀")
   case Exists extends Tk("∃")
   case Superset extends Tk("⊃")
   case Boolean extends Tk("𝔹")
   case Natural extends Tk("ℕ")
   case Integer extends Tk("ℤ")
+  case Number extends Tk("<NUM>")
   case Var extends Tk("<VAR>")
 
 object Tk {
-  val regex = new Regex(raw"[ \t\r\n]*+(inj[12₁₂]|Id|\([+×X]\)|->|=>|\|\||[a-z]++|.)", "token")
+  private val numberRegex = new Regex("^[0-9]+$")
+  val regex = new Regex(raw"[ \t\r\n]*+((?:inj|π)[12₁₂]|Id|\([+×X]\)|<=|->|=>|\|\||[0-9]++|[a-z]++|.)", "token")
 
   def get(text: String): Tk = text match {
     case "return" => Return
@@ -55,6 +61,8 @@ object Tk {
     case "rec" => Rec
     case "inl" | "inj1" | "inj₁" => Inl
     case "inr" | "inj2" | "inj₂" => Inr
+    case "L" | "π1" | "π₁" => PLeft
+    case "R" | "π2" | "π₂" => PRight
     case "into" => Into
     case "I" => I
     case "Id" | "id" => Id
@@ -68,6 +76,7 @@ object Tk {
     case "⊕" | "(+)" => CPlus
     case "⊗" | "(×)" | "(X)" => CTimes
     case "=" => Eq
+    case "≤" | "<=" => Leq
     case "(" => LParen
     case ")" => RParen
     case "{" => LBrace
@@ -85,12 +94,14 @@ object Tk {
     case "‖" | "||" => DBar
     case "∧" | "&" => And
     case "∨" | "|" => Or
+    case "¬" | "!" => Not
     case "∀" | "A" => ForAll
     case "∃" | "E" => Exists
     case "⊃" | "S" => Superset
     case "𝔹" | "B" => Boolean
     case "ℕ" | "N" => Natural
     case "ℤ" | "Z" => Integer
+    case _ if numberRegex.matches(text) => Number
     case _ => Var
   }
 }

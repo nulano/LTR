@@ -126,7 +126,7 @@ object MatchPattern extends Parseable[MatchPattern] {
         val right = pc.pop(Tk.Var).text
         pc.pop(Tk.DRight)
         val rightBody = Expression.parse(pc)
-        pc.pop(Tk.Or)
+        pc.pop(Tk.DBar)
         pc.pop(Tk.Inl)
         val left = pc.pop(Tk.Var).text
         pc.pop(Tk.DRight)
