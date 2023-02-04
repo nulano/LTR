@@ -169,4 +169,12 @@ class ParserTest extends AnyFreeSpec {
   raise(NType, "(1 × 1)", "unexpected '×' (expecting '→')")
   raise(NType, "↓↑1", "unexpected '↓' (expecting a negative type)")
 
+  roundtrip[REPLLet](REPLCommand, "let x = (return <> : ↑1)")
+  roundtrip[REPLDef](REPLCommand, "def x : ↑1 = return <>")
+  roundtrip[REPLRec](REPLCommand, "rec x : ∀a : ℕ . ↑1 = return <>")
+  roundtrip[REPLAlgebra](REPLCommand, "alg ixnat = (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a))")
+  roundtrip[REPLType](REPLCommand, "type unit = 1")
+  roundtrip[REPLTypeInductive](REPLCommand, "type nat(n) = μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ n")
+  raise(REPLCommand, "return <>", "unexpected 'return' (expecting a REPL statement)")
+  raise(REPLCommand, "type nat(n) = 1", "expected an inductive type")
 }

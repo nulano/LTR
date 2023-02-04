@@ -5,6 +5,9 @@ enum Tk(val text: String):
   case Let extends Tk("let")
   case Match extends Tk("match")
   case Rec extends Tk("rec")
+  case Def extends Tk("def")
+  case Alg extends Tk("alg")
+  case Type extends Tk("type")
   case Inl extends Tk("inl")
   case Inr extends Tk("inr")
   case PLeft extends Tk("π₁")
@@ -61,6 +64,9 @@ object Tk {
     case "let" => Let
     case "match" => Match
     case "rec" => Rec
+    case "def" => Def
+    case "alg" => Alg
+    case "type" => Type
     case "inl" | "inj1" | "inj₁" => Inl
     case "inr" | "inj2" | "inj₂" => Inr
     case "L" | "π1" | "π₁" => PLeft
