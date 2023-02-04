@@ -42,6 +42,7 @@ object PType extends Parseable[PType] {
         val tp = PType.parse(pc)
         PExists(idx, sort, tp)
       }
+      case Tk.Var => pc.getTypeVar(tok)
       case _ => throw UnexpectedTokenParseException(tok, "a positive type")
     }
   }

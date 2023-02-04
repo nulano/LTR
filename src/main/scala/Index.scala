@@ -1,6 +1,10 @@
 
-sealed trait Index
-sealed trait Proposition extends Index
+sealed trait Index {
+  def substitute(variable: String, value: Index): Index
+}
+sealed trait Proposition extends Index {
+  override def substitute(variable: String, value: Index): Proposition
+}
 
 object Index extends Parseable[Index] {
   override def parse(pc: ParseContext): Index = {
@@ -46,43 +50,82 @@ object Proposition extends Parseable[Proposition] {
 
 case class IVariable(name: String) extends Index {
   override def toString: String = name
+
+  override def substitute(variable: String, value: Index): Index = 
+    if name == variable then value else this
 }
 case class IConstant(value: Int) extends Index {
   override def toString: String = s"$value"
+
+  override def substitute(variable: String, value: Index): Index = this
 }
 case class ISum(left: Index, right: Index) extends Index {
   override def toString: String = s"($left + $right)"
+
+  override def substitute(variable: String, value: Index): Index =
+    ISum(left.substitute(variable, value), right.substitute(variable, value))
 }
 case class IDifference(left: Index, right: Index) extends Index {
   override def toString: String = s"($left - $right)"
+
+  override def substitute(variable: String, value: Index): Index =
+    IDifference(left.substitute(variable, value), right.substitute(variable, value))
 }
 case class IPair(left: Index, right: Index) extends Index {
   override def toString: String = s"($left, $right)"
+
+  override def substitute(variable: String, value: Index): Index =
+    IPair(left.substitute(variable, value), right.substitute(variable, value))
 }
 case class ILeft(value: Index) extends Index {
   override def toString: String = s"π₁ $value"
+
+  override def substitute(variable: String, value: Index): Index =
+    ILeft(value.substitute(variable, value))
 }
 case class IRight(value: Index) extends Index {
   override def toString: String = s"π₂ $value"
+
+  override def substitute(variable: String, value: Index): Index =
+    IRight(value.substitute(variable, value))
 }
 case class IPEqual(left: Index, right: Index) extends Proposition {
   override def toString: String = s"($left = $right)"
+
+  override def substitute(variable: String, value: Index): Proposition =
+    IPEqual(left.substitute(variable, value), right.substitute(variable, value))
 }
 case class IPLessEqual(left: Index, right: Index) extends Proposition {
   override def toString: String = s"($left ≤ $right)"
+
+  override def substitute(variable: String, value: Index): Proposition =
+    IPLessEqual(left.substitute(variable, value), right.substitute(variable, value))
 }
 case class IPAnd(left: Proposition, right: Proposition) extends Proposition {
   override def toString: String = s"($left ∧ $right)"
+
+  override def substitute(variable: String, value: Index): Proposition =
+    IPAnd(left.substitute(variable, value), right.substitute(variable, value))
 }
 case class IPOr(left: Proposition, right: Proposition) extends Proposition {
   override def toString: String = s"($left ∨ $right)"
+
+  override def substitute(variable: String, value: Index): Proposition =
+    IPOr(left.substitute(variable, value), right.substitute(variable, value))
 }
 case class IPNot(prop: Proposition) extends Proposition {
   override def toString: String = s"¬$prop"
+
+  override def substitute(variable: String, value: Index): Proposition =
+    IPNot(prop.substitute(variable, value))
 }
 case class IPTrue() extends Proposition {
   override def toString: String = "T"
+
+  override def substitute(variable: String, value: Index): Proposition = this
 }
 case class IPFalse() extends Proposition {
   override def toString: String = "F"
+
+  override def substitute(variable: String, value: Index): Proposition = this
 }

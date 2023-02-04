@@ -1,4 +1,33 @@
 
+class REPL {
+  var vars = new VariableContext(List())
+  // TODO var logicContext = ...
+  var typeVars: Map[String, TypeVar] = Map()
+  var algebras: Map[String, Algebra] = Map()
+
+  def makeParseContext(parser: Parser): ParseContext = {
+    ParseContext(parser, typeVars, algebras)
+  }
+
+  def processCommand(cmd: REPLCommand): String = {
+    cmd match
+      case command: REPLLetCommand =>
+        val (variable, boundExpression) = command.assignment
+        val tp = boundExpression.getType(vars).result
+        this.vars = this.vars.add(variable, tp)
+        s"let $variable : $tp"
+      case REPLAlgebra(variable, alg) =>
+        this.algebras = this.algebras + ((variable, alg))
+        cmd.toString
+      case REPLType(variable, tp) =>
+        this.typeVars = this.typeVars + ((variable, TVConstant(tp)))
+        cmd.toString
+      case REPLTypeInductive(variable, indexVariable, tp) =>
+        this.typeVars = this.typeVars + ((variable, TVInductive(indexVariable, tp)))
+        cmd.toString
+  }
+}
+
 sealed trait REPLCommand
 sealed trait REPLLetCommand extends REPLCommand {
   def assignment: (String, BoundExpression)
@@ -77,5 +106,21 @@ case class REPLTypeInductive(variable: String, indexVariable: String, tp: PInduc
   override def toString: String = s"type $variable($indexVariable) = $tp"
 }
 
+sealed trait TypeVar {
+  def instantiate(pc: ParseContext): PType
+}
 
+case class TVConstant(tp: PType) extends TypeVar {
+  override def instantiate(pc: ParseContext): PType = tp
+}
+
+// TODO check index variable scope
+case class TVInductive(variable: String, tp: PInductive) extends TypeVar {
+  override def instantiate(pc: ParseContext): PType = {
+    pc.pop(Tk.LParen)
+    val idx = Index.parse(pc)
+    pc.pop(Tk.RParen)
+    PInductive(tp.functor, tp.algebra, tp.index.substitute(variable, idx))
+  }
+}
 

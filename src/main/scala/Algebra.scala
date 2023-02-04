@@ -9,11 +9,13 @@ case class Algebra(patterns: Vector[(AlgebraSumPattern, Index)]) {
 
 object Algebra extends Parseable[Algebra] {
   override def parse(pc: ParseContext): Algebra = {
-    val tok = pc.pop(Tk.LParen)
-    /*if pc.peek().tk == Tk.RParen then {
+    val tok = pc.pop(Tk.LParen, Tk.Var)
+    if tok.tk == Tk.Var then
+      pc.getAlgebraVar(tok)
+    else /* if pc.peek().tk == Tk.RParen then {
       pc.pop(Tk.RParen)
       Algebra(Vector())
-    } else*/ {
+    } else */ {
       val builder = new VectorBuilder[(AlgebraSumPattern, Index)]
       while {
         val p = AlgebraSumPattern.parse(pc)

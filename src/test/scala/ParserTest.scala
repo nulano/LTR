@@ -10,17 +10,21 @@ class ParserTest extends AnyFreeSpec {
 
   private inline def parseTo[T](parseable: Parseable[? >: T], string: String, norm: String)(implicit tp: ClassTag[T]): Unit = {
     s"${parseableName(parseable)}.parse('$string') should return $tp '$norm' which roundtrips" in {
-      val v = parseable.parse(StringParseContext(string))
+      val pc = ParseContext(Parser.forString("test", string))
+      val v = parseable.parse(pc)
+      assert(pc.pop(Tk.EOF).tk == Tk.EOF)
       assert(v.toString == norm)
       assert(tp.runtimeClass.isAssignableFrom(v.getClass), s"wrong result type: expected $tp, got ${v.getClass.getName}")
-      val w = parseable.parse(StringParseContext(norm))
+      val w = parseable.parse(ParseContext(Parser.forString("test", norm)))
       assert(w == v)
     }
   }
 
   private inline def roundtrip[T](parseable: Parseable[? >: T], string: String)(implicit tp: ClassTag[T]): Unit = {
     s"${parseableName(parseable)}.parse('$string') should return $tp and roundtrip" in {
-      val v = parseable.parse(StringParseContext(string))
+      val pc = ParseContext(Parser.forString("test", string))
+      val v = parseable.parse(pc)
+      assert(pc.pop(Tk.EOF).tk == Tk.EOF)
       assert(v.toString == string)
       assert(tp.runtimeClass.isAssignableFrom(v.getClass), s"wrong result type: expected $tp, got ${v.getClass.getName}")
     }
@@ -28,20 +32,22 @@ class ParserTest extends AnyFreeSpec {
 
   private inline def parseMatch[T <: MatchPattern](string: String, norm: String)(implicit tp: ClassTag[T]): Unit = {
     s"Expression.parse('$string') should return ExpMatch '$norm' with $tp which roundtrip" in {
-      val v = Expression.parse(StringParseContext(string))
+      val pc = ParseContext(Parser.forString("test", string))
+      val v = Expression.parse(pc)
+      assert(pc.pop(Tk.EOF).tk == Tk.EOF)
       assert(v.toString == norm)
       v match {
         case ExpMatch(_, clauses) => assert(tp.runtimeClass.isAssignableFrom(clauses.getClass), s"wrong clauses type: expected $tp, got ${v.getClass.getName}")
         case _ => fail(s"wrong result type: expected ExpMatch, got ${v.getClass.getName}")
       }
-      val w = Expression.parse(StringParseContext(norm))
+      val w = Expression.parse(ParseContext(Parser.forString("test", norm)))
       assert(w == v)
     }
   }
 
   private inline def raise[T](parseable: Parseable[T], string: String, err: String): Unit = {
     s"${parseableName(parseable)} should raise '$err' when parsing '$string'" in {
-      val pc = StringParseContext(string)
+      val pc = ParseContext(Parser.forString("test", string))
       val ex = intercept[ParseException]{ parseable.parse(pc) }
       assert(ex.msg == err)
     }
@@ -54,7 +60,7 @@ class ParserTest extends AnyFreeSpec {
   parseTo[ValRight](Value, "inj₂  bar", "inr bar")
   parseTo[ValInto](Value, "into ( baz )", "into(baz)")
   parseTo[ValExpression](Value, "{  return hello  }", "{return hello}")
-  raise(Value, "<", "unexpected EOF")
+  raise(Value, "<", "unexpected '<end-of-file>' (expecting a value)")
   raise(Value, "return <>", "unexpected 'return' (expecting a value)")
 
   roundtrip[HeadVariable](Head, "foo")
@@ -67,7 +73,7 @@ class ParserTest extends AnyFreeSpec {
   roundtrip[BEApplication](BoundExpression, "[{λx . return x} : ↓(1 → ↑1)](<>)")
   roundtrip[BEExpression](BoundExpression, "(return <> : ↑1)")
   raise(BoundExpression, "<>", "unexpected '<' (expecting a head)")
-  raise(BoundExpression, "[<> : 1]", "unexpected EOF")
+  raise(BoundExpression, "[<> : 1]", "unexpected '<end-of-file>' (expecting '(')")
   raise(BoundExpression, "foo(,)", "unexpected ',' (expecting a value)")
   raise(BoundExpression, "foo(bar,)", "unexpected ')' (expecting a value)")
   raise(BoundExpression, "foo(bar,baz,)", "unexpected ')' (expecting a value)")
@@ -177,4 +183,34 @@ class ParserTest extends AnyFreeSpec {
   roundtrip[REPLTypeInductive](REPLCommand, "type nat(n) = μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ n")
   raise(REPLCommand, "return <>", "unexpected 'return' (expecting a REPL statement)")
   raise(REPLCommand, "type nat(n) = 1", "expected an inductive type")
+
+  // TODO separate test file?
+  "PType.parse('foo') should return PUnit '1' with context 'type foo = 1'" in {
+    val typeVars = collection.immutable.Map[String, TypeVar](("foo", TVConstant(PUnit())))
+    val pc = ParseContext(Parser.forString("test", "foo"), typeVars)
+    val v = PType.parse(pc)
+    assert(pc.pop(Tk.EOF).tk == Tk.EOF)
+    assert(v.toString == "1")
+    assert(v.isInstanceOf[PUnit], s"wrong result: expected PUnit, got ${v.getClass.getName}")
+  }
+  "PType.parse('foo(b)') should return PUnit 'μI ⊃ (() ⇒ 0) ⇒ b' with context 'type foo(a) = μI ⊃ (() ⇒ 0) ⇒ a'" in {
+    val itp = PType.parse(ParseContext(Parser.forString("test", "μI ⊃ (() ⇒ 0) ⇒ a"))).asInstanceOf[PInductive]
+    val typeVars = collection.immutable.Map[String, TypeVar](("foo", TVInductive("a", itp)))
+    val pc = ParseContext(Parser.forString("test", "foo(b)"), typeVars)
+    val v = PType.parse(pc)
+    assert(pc.pop(Tk.EOF).tk == Tk.EOF)
+    assert(v.toString == "μI ⊃ (() ⇒ 0) ⇒ b")
+    assert(v.isInstanceOf[PInductive], s"wrong result: expected PInductive, got ${v.getClass.getName}")
+  }
+  raise(PType, "foo", "type variable is not bound")
+  "PType.parse('μ(I ⊕ (Id ⊗ I)) ⊃ ixnat ⇒ b') should return PUnit 'μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ b' with context 'alg ixnat = (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a))'" in {
+    val ixnat = Algebra.parse(ParseContext(Parser.forString("test", "(inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a))")))
+    val algebraVars = collection.immutable.Map[String, Algebra](("ixnat", ixnat))
+    val pc = ParseContext(Parser.forString("test", "μ(I ⊕ (Id ⊗ I)) ⊃ ixnat ⇒ b"), algebras = algebraVars)
+    val v = PType.parse(pc)
+    assert(pc.pop(Tk.EOF).tk == Tk.EOF)
+    assert(v.toString == "μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ b")
+    assert(v.isInstanceOf[PInductive], s"wrong result: expected PInductive, got ${v.getClass.getName}")
+  }
+  raise(Algebra, "foo", "algebra variable is not bound")
 }

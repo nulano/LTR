@@ -1,4 +1,6 @@
-//import scala.collection.mutable
+import scala.util.matching.Regex
+
+case class Token(tk: Tk, text: String, loc: ParseLocation)
 
 sealed trait ParseLocation {
   def caused(msg: String): String = s"msg, at $this"
@@ -14,6 +16,8 @@ object ParseException {
   def apply(msg: String, loc: ParseLocation) = new ParseException(msg, Some(loc))
 }
 
+case class EOFException() extends ParseException("unexpected EOF")
+
 class UnexpectedTokenParseException(val token: Token, val expected: String)
   extends ParseException(s"unexpected '${token.text}' (expecting $expected)", Some(token.loc))
 
@@ -21,64 +25,69 @@ object UnexpectedTokenParseException {
   def apply(token: Token, expected: String) = new UnexpectedTokenParseException(token, expected)
 }
 
-// TODO different file?
-case class TypeException(msg: String) extends Exception(msg)
+private val causedRegex = new Regex(raw"[^ \t]")
 
-sealed trait ParseContext {
-  def peek() : Token
-  def pop() : Token
-  def pop(tk: Tk*) : Token = {
-    val tok = pop()
-    if !tk.contains(tok.tk) then
-      throw UnexpectedTokenParseException(tok, s"'${tk.map(_.text).mkString("' or '")}'")
-    tok
-  }
-}
+sealed class Parser(name: String, lines: Iterator[String]) {
+  private var row: Int = 0
+  private var col: Int = 0
+  private var line: String = ""
+  private var current: Option[Token] = None
 
-trait Parseable[T] {
-  def parse(pc: ParseContext) : T
-}
+  case class Location(line: String, row: Int, col: Int, len: Int) extends ParseLocation {
+    override def toString: String = s"$name:$row:${col + 1}"
 
-//class QueueParseContext(val queue : mutable.Queue[String]) extends ParseContext {
-//  private var index = 0
-//
-//  private def check(): Unit = {
-//    if queue.isEmpty then throw ParseException("unexpected EOF")
-//  }
-//
-//  private def makeToken(text: String, loc: Int): Token = {
-//    Token(Tk.get(text), text, IntLocation(loc))
-//  }
-//
-//  override def peek(): Token = { check(); makeToken(queue.front, index) }
-//  override def pop(): Token = { val tok = peek(); index += 1; tok }
-//}
-
-class StringParseContext(val text: String) extends ParseContext {
-  private var index = 0
-
-  private case class StringLocation(start: Int, end: Int) extends ParseLocation {
-    val length: Int = end - start
-
-    override def toString: String = s"input:${start + 1}"
-
-    override def caused(msg: String): String =
-      s"$msg, at $this\n    $text\n    ${" " * start}${"^" * length}"
+    override def caused(msg: String): String = {
+      val prefix = causedRegex.replaceAllIn(line.substring(0, col), " ")
+      s"$msg, at $this\n    $line\n    $prefix${"^" * len}"
+    }
   }
 
-  override def peek(): Token = {
-    Tk.regex.findPrefixMatchOf(text.substring(index)) match
-      case None => throw ParseException("unexpected EOF", StringLocation(index, text.length + 4))
-      case Some(m) => {
+  private def next(): Token = {
+    Tk.regex.findPrefixMatchOf(line.substring(col)) match
+      case None =>
+        try
+          line = lines.next()
+          row += 1
+          col = 0
+          this.next()
+        catch
+          case _: NoSuchElementException =>
+            Token(Tk.EOF, "<end-of-file>", Location(line, row, col, 4))
+      case Some(m) =>
         val word = m.group(1)
-        val loc = StringLocation(index + m.start(1), index + m.end(1))
-        Token(Tk.get(word), word, loc)
-      }
+        Tk.get(word) match
+          case Tk.Comment =>
+            col = line.length
+            this.next()
+          case tk =>
+            val loc = Location(line, row, col + m.start(1), word.length)
+            col += m.end(0)
+            Token(tk, word, loc)
   }
 
-  override def pop(): Token = {
-    val tok = peek()
-    index = tok.loc.asInstanceOf[StringLocation].end
-    tok
+  def peek(): Token = current match {
+    case Some(value) => value
+    case None =>
+      val value = this.next()
+      current = Some(value)
+      value
   }
+
+  def pop(): Token = {
+    val token = this.peek()
+    current = None
+    token
+  }
+
+  def pop(tks: Tk*): Token = {
+    val token = this.pop()
+    if !tks.contains(token.tk) then
+      throw UnexpectedTokenParseException(token, s"'${tks.map(_.text).mkString("' or '")}'")
+    token
+  }
+}
+
+object Parser {
+  def forString(name: String, text: String): Parser =
+    new Parser(name, text.split(raw"\r\n|[\r\n]").iterator)
 }
