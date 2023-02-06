@@ -1,4 +1,4 @@
-sealed trait NType extends SubstitutableIndex[? <: NType]
+sealed trait NType extends SubstitutableIndex[NType]
 sealed trait NTypeBase[T <: NTypeBase[T]] extends NType, SubstitutableIndex[T]
 
 object NType extends Parseable[NType] {

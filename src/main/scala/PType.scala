@@ -1,4 +1,4 @@
-sealed trait PType extends SubstitutableIndex[? <: PType]
+sealed trait PType extends SubstitutableIndex[PType]
 sealed trait PTypeBase[T <: PTypeBase[T]] extends PType, SubstitutableIndex[T]
 
 object PType extends Parseable[PType] {

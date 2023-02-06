@@ -1,19 +1,19 @@
 import scala.annotation.{tailrec, targetName}
 
-trait SubstitutableIndex[T] {
+trait SubstitutableIndex[+T] {
   def substituteIndex(replacement: Index, target: IndexVariable): T
 }
 
-sealed trait Index extends SubstitutableIndex[? <: Index] {
+sealed trait Index extends SubstitutableIndex[Index] {
   @targetName("substituteFor")
-  final def /[T <: SubstitutableIndex[? <: T]](target: IndexVariable)(value: T): T =
+  final def /[T <: SubstitutableIndex[T]](target: IndexVariable)(value: T): T =
     value.substituteIndex(this, target)
 
   final def sort: Sort = sort(_ => true)
   def sort(ctx: IndexVariable => Boolean): Sort
 }
 sealed trait IndexBase[T <: IndexBase[T]] extends Index, SubstitutableIndex[T]
-sealed trait Proposition extends Index, SubstitutableIndex[? <: Proposition] {
+sealed trait Proposition extends Index, SubstitutableIndex[Proposition] {
   def checkCanSort(ctx: IndexVariable => Boolean): Unit
 
   final override def sort(ctx: IndexVariable => Boolean): SBool = { checkCanSort(ctx); SBool() }
@@ -76,7 +76,7 @@ object IndexVariable extends Parseable[IndexVariable] {
     new IndexVariable(name, sort)
 }
 
-case class IVariable(variable: IndexVariable) extends Index, SubstitutableIndex[Index] {
+case class IVariable(variable: IndexVariable) extends Index {
   // hashCode must be 0 to allow for simple α-equivalence of ∀ and ∃ types
   override def hashCode(): Int = 0
 
