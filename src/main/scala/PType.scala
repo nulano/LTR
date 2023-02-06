@@ -1,4 +1,4 @@
-sealed trait PType extends SubstitutableIndex[PType]
+sealed trait PType extends WellFormed, SubstitutableIndex[PType]
 sealed trait PTypeBase[T <: PTypeBase[T]] extends PType, SubstitutableIndex[T]
 
 object PType extends Parseable[PType] {
@@ -50,10 +50,17 @@ object PType extends Parseable[PType] {
 case class PUnit() extends PTypeBase[PUnit] {
   override def toString: String = "1"
 
+  // AlgTp1
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = Set.empty
+
   override def substituteIndex(replacement: Index, target: IndexVariable): PUnit = this
 }
 case class PProd(left: PType, right: PType) extends PTypeBase[PProd] {
   override def toString: String = s"($left × $right)"
+
+  // AlgTp×
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+    left.wellFormed(ctx) | right.wellFormed(ctx)
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PProd =
     PProd((replacement / target)(left), (replacement / target)(right))
@@ -61,16 +68,27 @@ case class PProd(left: PType, right: PType) extends PTypeBase[PProd] {
 case class PVoid() extends PTypeBase[PVoid] {
   override def toString: String = "0"
 
+  // AlgTp0
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = Set.empty
+
   override def substituteIndex(replacement: Index, target: IndexVariable): PVoid = this
 }
 case class PSum(left: PType, right: PType) extends PTypeBase[PSum] {
   override def toString: String = s"($left + $right)"
+
+  // AlgTp+
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+    left.wellFormed(ctx) & right.wellFormed(ctx)
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PSum =
     PSum((replacement / target)(left), (replacement / target)(right))
 }
 case class PSuspended(tp: NType) extends PTypeBase[PSuspended] {
   override def toString: String = s"↓$tp"
+
+  // AlgTp↓
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+  { tp.wellFormed(ctx); Set.empty }
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PSuspended =
     PSuspended((replacement / target)(tp))
@@ -80,6 +98,17 @@ case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) exten
   override def toString: String = s"μ$functor ⊃ $algebra ⇒ $index"
 
   def unroll: PType = functor.unroll(this)
+
+  // AlgTpμ{...}
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = {
+    val functorDetermined = functor.wellFormed(ctx)
+    val sort = index.sort(ctx)
+    Algebra.wellFormed(Set.empty, ctx, algebra, functor, sort)
+    index match {
+      case variable: IVariable => functorDetermined + variable.variable
+      case _ => functorDetermined
+    }
+  }
 
   // TODO consider algebra?
   override def substituteIndex(replacement: Index, target: IndexVariable): PInductive =
@@ -100,11 +129,22 @@ case class PExists(variable: IndexVariable, tp: PType) extends PTypeBase[PExists
       case _ => false
     }
 
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = {
+    val body = tp.wellFormed(ctx + variable)
+    if !body.contains(variable) then
+      throw TypeException(s"cannot determine value of existentially quantified index: $this")
+    body - variable
+  }
+
   override def substituteIndex(replacement: Index, target: IndexVariable): PExists =
     PExists(variable, tp)
 }
 case class PProperty(tp: PType, proposition: Proposition) extends PTypeBase[PProperty] {
   override def toString: String = s"($tp ∧ [$proposition])"
+
+  // AlgTp∧
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+  { proposition.sort(ctx); tp.wellFormed(ctx) }
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PProperty =
     PProperty((replacement / target)(tp), (replacement / target)(proposition))

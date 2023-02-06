@@ -120,8 +120,12 @@ class ParserTest extends AnyFreeSpec {
   parseTo[APRight](AlgebraSumPattern, "inj2(_ ,(   ))", "inr (_, ())")
   raise(AlgebraSumPattern, "_", "unexpected '_' (expecting a sum algebra pattern)")
 
-  parseTo[Algebra](Algebra, "(()=>42)", "(() ⇒ 42)")
-  parseTo[Algebra](Algebra, "(inj1(_,())=>42||inj₂()=>(T∨F))", "(inl (_, ()) ⇒ 42 ‖ inr () ⇒ (T ∨ F))")
+  parseTo[AlgebraProd](Algebra, "(()=>42)", "(() ⇒ 42)")
+  parseTo[AlgebraProd](Algebra, "((_,())=>42)", "((_, ()) ⇒ 42)")
+  parseTo[AlgebraSum](Algebra, "(inj₂()=>(T∨F)||inj1(_,())=>42)", "(inl (_, ()) ⇒ 42 ‖ inr () ⇒ (T ∨ F))")
+  parseTo[AlgebraSum](Algebra,
+    "(inr inr (rr, ()) ⇒ 3 ‖ inl inr (lr, ()) ⇒ 1 ‖ inl inl (ll, ()) ⇒ 0 ‖ inr inl (rl, ()) ⇒ 2)",
+    "(inl inl (ll, ()) ⇒ 0 ‖ inl inr (lr, ()) ⇒ 1 ‖ inr inl (rl, ()) ⇒ 2 ‖ inr inr (rr, ()) ⇒ 3)")
   raise(Algebra, "()", "unexpected ')' (expecting a sum algebra pattern)")
   raise(Algebra, "( ‖ () ⇒ 1)", "unexpected '‖' (expecting a sum algebra pattern)")
   raise(Algebra, "(inl () ⇒ 1 ‖ inr () ⇒ 2 ‖ )", "unexpected ')' (expecting a sum algebra pattern)")

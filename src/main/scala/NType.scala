@@ -1,4 +1,4 @@
-sealed trait NType extends SubstitutableIndex[NType]
+sealed trait NType extends WellFormed, SubstitutableIndex[NType]
 sealed trait NTypeBase[T <: NTypeBase[T]] extends NType, SubstitutableIndex[T]
 
 object NType extends Parseable[NType] {
@@ -33,11 +33,19 @@ object NType extends Parseable[NType] {
 case class NFunction(arg: PType, body: NType) extends NTypeBase[NFunction] {
   override def toString: String = s"($arg → $body)"
 
+  // AlgTp→
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+    arg.wellFormed(ctx) | body.wellFormed(ctx)
+
   override def substituteIndex(replacement: Index, target: IndexVariable): NFunction =
     NFunction((replacement / target)(arg), (replacement / target)(body))
 }
 case class NComputation(result: PType) extends NTypeBase[NComputation] {
   override def toString: String = s"↑$result"
+
+  // AlgTp↑
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+  { result.wellFormed(ctx); Set.empty }
 
   override def substituteIndex(replacement: Index, target: IndexVariable): NComputation =
     NComputation((replacement / target)(result))
@@ -57,12 +65,25 @@ case class NForAll(variable: IndexVariable, tp: NType) extends NTypeBase[NForAll
       case _ => false
     }
 
+  // AlgTp∀
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = {
+    val body = tp.wellFormed(ctx + variable)
+    if !body.contains(variable) then
+      throw TypeException(s"cannot determine value of universally quantified index: $this")
+    body - variable
+  }
+
   override def substituteIndex(replacement: Index, target: IndexVariable): NForAll =
     NForAll(variable, (replacement / target)(tp))
 }
 case class NPrecondition(proposition: Proposition, tp: NType) extends NTypeBase[NPrecondition] {
   override def toString: String = s"[$proposition] ⊃ $tp"
 
+  // AlgTp⊃
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = {
+    proposition.sort(ctx); tp.wellFormed(ctx)
+  }
+  
   override def substituteIndex(replacement: Index, target: IndexVariable): NPrecondition =
     NPrecondition((replacement / target)(proposition), (replacement / target)(tp))
 }

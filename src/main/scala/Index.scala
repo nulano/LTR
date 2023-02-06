@@ -4,12 +4,32 @@ trait SubstitutableIndex[+T] {
   def substituteIndex(replacement: Index, target: IndexVariable): T
 }
 
+trait WellFormed {
+  /**
+   * Check that under ctx, this is well-formed, returning value-determined indexes,
+   * i.e. Θ; Δ ⊢ this [Ξ] (figs. 20/56, 21a/57a)
+   * @param ctx the set of logic variables that are in context, i.e. Θ ∪ Δ
+   * @return the set of value-determined indexes, i.e. Ξ
+   */
+  def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable]
+}
+
 sealed trait Index extends SubstitutableIndex[Index] {
   @targetName("substituteFor")
   final def /[T <: SubstitutableIndex[T]](target: IndexVariable)(value: T): T =
     value.substituteIndex(this, target)
 
+  /**
+   * Determine the sort of this under any context, i.e. * ⊢ this : τ (fig. 18/54)
+   * @return the set of value-determined indexes, i.e. τ
+   */
   final def sort: Sort = sort(_ => true)
+
+  /**
+   * Determine the sort of this under ctx, i.e. Θ; Δ ⊢ this : τ (fig. 18/54)
+   * @param ctx the set of logic variables that are in context, i.e. Θ ∪ Δ
+   * @return the set of value-determined indexes, i.e. τ
+   */
   def sort(ctx: IndexVariable => Boolean): Sort
 }
 sealed trait IndexBase[T <: IndexBase[T]] extends Index, SubstitutableIndex[T]

@@ -1,5 +1,5 @@
 
-sealed trait Functor
+sealed trait Functor extends WellFormed
 sealed trait FunctorSum extends Functor {
   def unroll(id: PInductive): PType
 }
@@ -64,11 +64,18 @@ object FunctorBase extends Parseable[FunctorBase] {
 case class FSum(left: FunctorSum, right: FunctorSum) extends FunctorSum {
   override def toString: String = s"($left ⊕ $right)"
 
+  // AlgFunctor⊕
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+    left.wellFormed(ctx) & right.wellFormed(ctx)
+
   // UnrefUnroll⊕
   override def unroll(id: PInductive): PType = PSum(left.unroll(id), right.unroll(id))
 }
 case class FUnit() extends FunctorProduct {
   override def toString: String = "I"
+
+  // AlgFunctorI
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = Set.empty
 
   // UnrefUnrollI
   override def unroll(id: PInductive): PType = PUnit()
@@ -76,13 +83,24 @@ case class FUnit() extends FunctorProduct {
 case class FProduct(left: FunctorBase, right: FunctorProduct) extends FunctorProduct {
   override def toString: String = s"($left ⊗ $right)"
 
+  // AlgFunctor⊗
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+    left.wellFormed(ctx) | right.wellFormed(ctx)
+  
   // UnrefUnrollConst, UnrefUnrollId
   override def unroll(id: PInductive): PType =
     PProd(left match { case FConstant(tp) => tp; case FIdentity() => id }, right.unroll(id))
 }
 case class FConstant(tp: PType) extends FunctorBase {
   override def toString: String = s"[$tp]"
+
+  // AlgFunctorConstant
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+    tp.wellFormed(ctx)
 }
 case class FIdentity() extends FunctorBase {
   override def toString: String = "Id"
+
+  // AlgFunctorId
+  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = Set.empty
 }
