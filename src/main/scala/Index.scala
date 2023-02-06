@@ -64,18 +64,6 @@ object Proposition extends Parseable[Proposition] {
       case _ => throw ParseException("not a proposition")
 }
 
-class IndexVariable(val name: String, val sort: Sort) {
-  override def toString: String = s"${name}_${super.hashCode.toHexString} : $sort"
-}
-
-object IndexVariable extends Parseable[IndexVariable] {
-  override def parse(pc: ParseContext): IndexVariable =
-    val name = pc.pop(Tk.Var).text
-    pc.pop(Tk.Colon)
-    val sort = Sort.parse(pc)
-    new IndexVariable(name, sort)
-}
-
 case class IVariable(variable: IndexVariable) extends Index {
   // hashCode must be 0 to allow for simple α-equivalence of ∀ and ∃ types
   override def hashCode(): Int = 0
@@ -101,7 +89,7 @@ case class INatConstant(value: Int) extends IndexBase[INatConstant] {
   override def substituteIndex(replacement: Index, target: IndexVariable): INatConstant = this
 }
 case class IIntConstant(value: Int) extends IndexBase[IIntConstant] {
-  override def toString: String = s"$value"
+  override def toString: String = f"$value%+d"
 
   // IxConst
   override def sort(ctx: IndexVariable => Boolean): Sort = SInt()

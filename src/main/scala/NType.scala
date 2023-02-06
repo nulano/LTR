@@ -14,7 +14,7 @@ object NType extends Parseable[NType] {
       }
       case Tk.Up => NComputation(PType.parse(pc))
       case Tk.ForAll => {
-        val variable = IndexVariable.parse(pc)
+        val variable = IVSimple.parse(pc)
         pc.pop(Tk.Dot)
         val tp = NType.parse(pc + variable)
         NForAll(variable, tp)
@@ -51,7 +51,8 @@ case class NForAll(variable: IndexVariable, tp: NType) extends NTypeBase[NForAll
   override def equals(other: Any): Boolean =
     other match {
       case that: NForAll =>
-        val temp = IVariable(new IndexVariable(variable.name, variable.sort))
+        // TODO different var class?
+        val temp = IVariable(new IVSimple(variable.name, variable.sort))
         (temp / this.variable)(this.tp) == (temp / that.variable)(that.tp)
       case _ => false
     }
