@@ -6,7 +6,7 @@ class REPL {
   var algebras: Map[String, Algebra] = Map()
 
   def makeParseContext(parser: Parser): ParseContext = {
-    ParseContext(parser, typeVars, algebras)
+    ParseContext(parser, typeVars = typeVars, algebras = algebras)
   }
 
   def processCommand(cmd: REPLCommand): String = {
@@ -64,10 +64,10 @@ object REPLCommand extends Parseable[REPLCommand] {
       case Tk.Type =>
         val v = pc.pop(Tk.Var).text
         if pc.pop(Tk.Eq, Tk.LParen).tk == Tk.LParen then {
-          val i = pc.pop(Tk.Var).text
+          val i = IndexVariable.parse(pc)
           pc.pop(Tk.RParen)
           pc.pop(Tk.Eq)
-          PType.parse(pc) match
+          PType.parse(pc + i) match
             case tp: PInductive => REPLTypeInductive(v, i, tp)(tok)
             case _ => throw ParseException("expected an inductive type")
         } else {
@@ -102,8 +102,8 @@ case class REPLAlgebra(variable: String, alg: Algebra)(val token: Token) extends
 case class REPLType(variable: String, tp: PType)(val token: Token) extends REPLCommand {
   override def toString: String = s"type $variable = $tp"
 }
-case class REPLTypeInductive(variable: String, indexVariable: String, tp: PInductive)(val token: Token) extends REPLCommand {
-  override def toString: String = s"type $variable($indexVariable) = $tp"
+case class REPLTypeInductive(variable: String, indexVariable: IndexVariable, tp: PInductive)(val token: Token) extends REPLCommand {
+  override def toString: String = s"type $variable(${indexVariable.name} : ${indexVariable.sort}) = $tp"
 }
 
 sealed trait TypeVar {
@@ -115,12 +115,21 @@ case class TVConstant(tp: PType) extends TypeVar {
 }
 
 // TODO check index variable scope
-case class TVInductive(variable: String, tp: PInductive) extends TypeVar {
+case class TVInductive(variable: IndexVariable, tp: PInductive) extends TypeVar {
   override def instantiate(pc: ParseContext): PType = {
-    pc.pop(Tk.LParen)
+    val tok = pc.pop(Tk.LParen)
     val idx = Index.parse(pc)
     pc.pop(Tk.RParen)
-    PInductive(tp.functor, tp.algebra, tp.index.substitute(variable, idx))
+    try
+      val idx_sort = idx.sort
+      if idx_sort != variable.sort then
+        throw SortException(idx, s"argument has wrong type $idx_sort (expected ${variable.sort})")
+    catch
+      case tex: TypeException =>
+        val pex = new ParseException(tex.getMessage, Some(tok.loc))
+        pex.initCause(tex)
+        throw pex
+    (idx / variable)(tp)
   }
 }
 

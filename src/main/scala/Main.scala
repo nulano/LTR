@@ -58,7 +58,7 @@ object Main {
         |""".stripMargin
 
     val repl = new REPL()
-    val reader = input.split('\n').iterator ++ StdInReader
+    val reader = /*input.split('\n').iterator ++*/ StdInReader
     val parser = new Parser("<stdin>", reader)
     while parser.peek().tk != Tk.EOF do {
       try
@@ -67,6 +67,7 @@ object Main {
       catch
         case parseException: ParseException =>
           parseException.printStackTrace()
+          parser.skipLine()
         case typeException: TypeException =>
           typeException.printStackTrace()
     }

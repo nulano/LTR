@@ -135,7 +135,9 @@ class ParserTest extends AnyFreeSpec {
   raise(Sort, "<>", "unexpected '<' (expecting a sort)")
 
   roundtrip[IVariable](Index, "foo")
-  roundtrip[IConstant](Index, "42")
+  roundtrip[INatConstant](Index, "42")
+  roundtrip[IIntConstant](Index, "+42")
+  roundtrip[IIntConstant](Index, "-42")
   roundtrip[ISum](Index, "(foo + bar)")
   parseTo[IDifference](Index, "(a-1)", "(a - 1)")
   parseTo[IPair](Index, "( 1,2 )", "(1, 2)")
@@ -164,6 +166,7 @@ class ParserTest extends AnyFreeSpec {
   roundtrip[PInductive](PType, "μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ b")  // Nat(b)
   parseTo[PExists](PType, "Ea:B.1", "∃a : 𝔹 . 1")
   parseTo[PProperty](PType, "(1&[ F ])", "(1 ∧ [F])")
+  parseTo[PExists](PType, "Ea:N.(1&[(a=5)])", "∃a : ℕ . (1 ∧ [(a = 5)])")
   raise(PType, "μ[1] ⊃ (()=>1) ⇒ idx", "not a sum functor")
   raise(PType, "↑1", "unexpected '↑' (expecting a positive type)")
 
@@ -180,14 +183,14 @@ class ParserTest extends AnyFreeSpec {
   roundtrip[REPLRec](REPLCommand, "rec x : ∀a : ℕ . ↑1 = return <>")
   roundtrip[REPLAlgebra](REPLCommand, "alg ixnat = (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a))")
   roundtrip[REPLType](REPLCommand, "type unit = 1")
-  roundtrip[REPLTypeInductive](REPLCommand, "type nat(n) = μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ n")
+  roundtrip[REPLTypeInductive](REPLCommand, "type nat(n : ℕ) = μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ n")
   raise(REPLCommand, "return <>", "unexpected 'return' (expecting a REPL statement)")
   raise(REPLCommand, "type nat(n) = 1", "expected an inductive type")
 
   // TODO separate test file?
   "PType.parse('foo') should return PUnit '1' with context 'type foo = 1'" in {
     val typeVars = collection.immutable.Map[String, TypeVar](("foo", TVConstant(PUnit())))
-    val pc = ParseContext(Parser.forString("test", "foo"), typeVars)
+    val pc = ParseContext(Parser.forString("test", "foo"), typeVars = typeVars)
     val v = PType.parse(pc)
     assert(pc.pop(Tk.EOF).tk == Tk.EOF)
     assert(v.toString == "1")
@@ -195,8 +198,8 @@ class ParserTest extends AnyFreeSpec {
   }
   "PType.parse('foo(b)') should return PUnit 'μI ⊃ (() ⇒ 0) ⇒ b' with context 'type foo(a) = μI ⊃ (() ⇒ 0) ⇒ a'" in {
     val itp = PType.parse(ParseContext(Parser.forString("test", "μI ⊃ (() ⇒ 0) ⇒ a"))).asInstanceOf[PInductive]
-    val typeVars = collection.immutable.Map[String, TypeVar](("foo", TVInductive("a", itp)))
-    val pc = ParseContext(Parser.forString("test", "foo(b)"), typeVars)
+    val typeVars = collection.immutable.Map[String, TypeVar](("foo", TVInductive(new IndexVariable("a", SNat()), itp)))
+    val pc = ParseContext(Parser.forString("test", "foo(b)"), typeVars = typeVars)
     val v = PType.parse(pc)
     assert(pc.pop(Tk.EOF).tk == Tk.EOF)
     assert(v.toString == "μI ⊃ (() ⇒ 0) ⇒ b")

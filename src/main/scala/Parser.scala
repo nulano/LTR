@@ -41,6 +41,11 @@ sealed class Parser(name: String, lines: Iterator[String]) {
       s"$msg, at $this\n    $line\n    $prefix${"^" * len}"
     }
   }
+  
+  def skipLine(): Unit = {
+    current = None
+    col = line.length
+  }
 
   private def next(): Token = {
     Tk.regex.findPrefixMatchOf(line.substring(col)) match
