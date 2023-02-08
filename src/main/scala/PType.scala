@@ -36,7 +36,7 @@ object PType extends Parseable[PType] {
         PInductive(fun, alg, idx)
       }
       case Tk.Exists => {
-        val variable = IVSimple.parse(pc)
+        val variable = IVBound.parse(pc)
         pc.pop(Tk.Dot)
         val tp = PType.parse(pc + variable)
         PExists(variable, tp)
@@ -124,7 +124,7 @@ case class PExists(variable: IndexVariable, tp: PType) extends PTypeBase[PExists
     other match {
       case that: PExists =>
         // TODO different var class?
-        val temp = IVariable(new IVSimple(variable.name, variable.sort))
+        val temp = IVariable(new IVBound(variable.name, variable.sort))
         (temp / this.variable)(this.tp) == (temp / that.variable)(that.tp)
       case _ => false
     }

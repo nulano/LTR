@@ -64,7 +64,7 @@ object REPLCommand extends Parseable[REPLCommand] {
       case Tk.Type =>
         val v = pc.pop(Tk.Var).text
         if pc.pop(Tk.Eq, Tk.LParen).tk == Tk.LParen then {
-          val i = IVSimple.parse(pc)
+          val i = IVBound.parse(pc)
           pc.pop(Tk.RParen)
           pc.pop(Tk.Eq)
           PType.parse(pc + i) match

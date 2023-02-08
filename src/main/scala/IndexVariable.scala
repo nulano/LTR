@@ -4,22 +4,22 @@ trait IndexVariable {
   def sort: Sort
 }
 
-class IVSimple(val name: String, val sort: Sort) extends IndexVariable {
+class IVBound(val name: String, val sort: Sort) extends IndexVariable {
   override def toString: String = s"${name}_${super.hashCode.toHexString} : $sort"
 }
 
-object IVSimple extends Parseable[IndexVariable] {
-  override def parse(pc: ParseContext): IVSimple =
+object IVBound extends Parseable[IndexVariable] {
+  override def parse(pc: ParseContext): IVBound =
     val name = pc.pop(Tk.Var).text
     pc.pop(Tk.Colon)
     val sort = Sort.parse(pc)
-    new IVSimple(name, sort)
+    new IVBound(name, sort)
 }
 
 class IVPlaceholder(val name: String) extends IndexVariable {
   override def sort: Sort = throw new IllegalStateException("placeholder variable has no sort")
 
-  def withSort(sort: Sort): IVSimple = new IVSimple(name, sort)
+  def withSort(sort: Sort): IVBound = new IVBound(name, sort)
 
   override def toString: String = s"${name}_${super.hashCode.toHexString} : ?"
 }

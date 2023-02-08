@@ -201,10 +201,10 @@ class ParserTest extends AnyFreeSpec {
     assert(v.isInstanceOf[PUnit], s"wrong result: expected PUnit, got ${v.getClass.getName}")
   }
   "PType.parse('foo(b)') should return PUnit 'μI ⊃ (() ⇒ 0) ⇒ b' with context 'type foo(a) = μI ⊃ (() ⇒ 0) ⇒ a'" in {
-    val indexVariable = new IVSimple("a", SNat())
+    val indexVariable = new IVBound("a", SNat())
     val itp = PType.parse(ParseContext(Parser.forString("test", "μI ⊃ (() ⇒ 0) ⇒ a")) + indexVariable).asInstanceOf[PInductive]
     val typeVars = collection.immutable.Map[String, TypeVar](("foo", TVInductive(indexVariable, itp)))
-    val pc = ParseContext(Parser.forString("test", "foo(b)"), typeVars = typeVars) + new IVSimple("b", SNat())
+    val pc = ParseContext(Parser.forString("test", "foo(b)"), typeVars = typeVars) + new IVBound("b", SNat())
     val v = PType.parse(pc)
     assert(pc.pop(Tk.EOF).tk == Tk.EOF)
     assert(v.toString == "μI ⊃ (() ⇒ 0) ⇒ b")
@@ -214,7 +214,7 @@ class ParserTest extends AnyFreeSpec {
   "PType.parse('μ(I ⊕ (Id ⊗ I)) ⊃ ixnat ⇒ b') should return PUnit 'μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ b' with context 'alg ixnat = (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a))'" in {
     val ixnat = Algebra.parse(ParseContext(Parser.forString("test", "(inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a))")))
     val algebraVars = collection.immutable.Map[String, Algebra](("ixnat", ixnat))
-    val pc = ParseContext(Parser.forString("test", "μ(I ⊕ (Id ⊗ I)) ⊃ ixnat ⇒ b"), algebras = algebraVars) + new IVSimple("b", SNat())
+    val pc = ParseContext(Parser.forString("test", "μ(I ⊕ (Id ⊗ I)) ⊃ ixnat ⇒ b"), algebras = algebraVars) + new IVBound("b", SNat())
     val v = PType.parse(pc)
     assert(pc.pop(Tk.EOF).tk == Tk.EOF)
     assert(v.toString == "μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ b")
