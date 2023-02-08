@@ -8,21 +8,21 @@ class ParserTest extends AnyFreeSpec {
     parseable.getClass.getName.replace("$", "")
   }
 
-  private inline def parseTo[T](parseable: Parseable[? >: T], string: String, norm: String)(implicit tp: ClassTag[T]): Unit = {
+  private inline def parseTo[T](parseable: Parseable[? >: T], string: String, norm: String, indexVars: List[IndexVariable] = List.empty)(implicit tp: ClassTag[T]): Unit = {
     s"${parseableName(parseable)}.parse('$string') should return $tp '$norm' which roundtrips" in {
-      val pc = ParseContext(Parser.forString("test", string))
+      val pc = ParseContext(Parser.forString("test", string), indexVars = indexVars.map{case i => (i.name, i)}.toMap)
       val v = parseable.parse(pc)
       assert(pc.pop(Tk.EOF).tk == Tk.EOF)
       assert(v.toString == norm)
       assert(tp.runtimeClass.isAssignableFrom(v.getClass), s"wrong result type: expected $tp, got ${v.getClass.getName}")
-      val w = parseable.parse(ParseContext(Parser.forString("test", norm)))
+      val w = parseable.parse(ParseContext(Parser.forString("test", norm), indexVars = indexVars.map{case i => (i.name, i)}.toMap))
       assert(w == v)
     }
   }
 
-  private inline def roundtrip[T](parseable: Parseable[? >: T], string: String)(implicit tp: ClassTag[T]): Unit = {
+  private inline def roundtrip[T](parseable: Parseable[? >: T], string: String, indexVars: List[IndexVariable] = List.empty)(implicit tp: ClassTag[T]): Unit = {
     s"${parseableName(parseable)}.parse('$string') should return $tp and roundtrip" in {
-      val pc = ParseContext(Parser.forString("test", string))
+      val pc = ParseContext(Parser.forString("test", string), indexVars = indexVars.map{case i => (i.name, i)}.toMap)
       val v = parseable.parse(pc)
       assert(pc.pop(Tk.EOF).tk == Tk.EOF)
       assert(v.toString == string)
@@ -45,9 +45,9 @@ class ParserTest extends AnyFreeSpec {
     }
   }
 
-  private inline def raise[T](parseable: Parseable[T], string: String, err: String): Unit = {
+  private inline def raise[T](parseable: Parseable[T], string: String, err: String, indexVars: List[IndexVariable] = List.empty): Unit = {
     s"${parseableName(parseable)} should raise '$err' when parsing '$string'" in {
-      val pc = ParseContext(Parser.forString("test", string))
+      val pc = ParseContext(Parser.forString("test", string), indexVars = indexVars.map{case i => (i.name, i)}.toMap)
       val ex = intercept[ParseException]{ parseable.parse(pc) }
       assert(ex.msg == err)
     }
@@ -138,26 +138,26 @@ class ParserTest extends AnyFreeSpec {
   parseTo[SProd](Sort, "(ZX(BXN))", "(ℤ × (𝔹 × ℕ))")
   raise(Sort, "<>", "unexpected '<' (expecting a sort)")
 
-  roundtrip[IVariable](Index, "foo")
+  roundtrip[IVariable](Index, "foo", indexVars = List(new IVBound("foo", SNat())))
   roundtrip[INatConstant](Index, "42")
   roundtrip[IIntConstant](Index, "+42")
   roundtrip[IIntConstant](Index, "-42")
-  roundtrip[ISum](Index, "(foo + bar)")
-  parseTo[IDifference](Index, "(a-1)", "(a - 1)")
+  roundtrip[ISum](Index, "(foo + bar)", indexVars = List(new IVBound("foo", SNat()), new IVBound("bar", SNat())))
+  parseTo[IDifference](Index, "(a-1)", "(a - 1)", indexVars = List(new IVBound("a", SInt())))
   parseTo[IPair](Index, "( 1,2 )", "(1, 2)")
-  parseTo[ILeft](Index, "L foo", "π₁ foo")
-  parseTo[IRight](Index, "π2foo", "π₂ foo")
-  parseTo[IPEqual](Proposition, "( foo=bar )", "(foo = bar)")
+  parseTo[ILeft](Index, "L foo", "π₁ foo", indexVars = List(new IVBound("foo", SProd(SNat(), SInt()))))
+  parseTo[IRight](Index, "π2foo", "π₂ foo", indexVars = List(new IVBound("foo", SProd(SNat(), SInt()))))
+  parseTo[IPEqual](Proposition, "( foo=bar )", "(foo = bar)", indexVars = List(new IVBound("foo", SNat()), new IVBound("bar", SNat())))
   parseTo[IPLessEqual](Proposition, "( 1<=2 )", "(1 ≤ 2)")
   parseTo[IPAnd](Proposition, "( T&F )", "(T ∧ F)")
-  parseTo[IPOr](Proposition, "( (1=a)|(a<=2) )", "((1 = a) ∨ (a ≤ 2))")
+  parseTo[IPOr](Proposition, "( (1=a)|(a<=2) )", "((1 = a) ∨ (a ≤ 2))", indexVars = List(new IVBound("a", SInt())))
   roundtrip[IPNot](Proposition, "¬F")
   roundtrip[IPTrue](Proposition, "T")
   roundtrip[IPFalse](Proposition, "F")
   raise(Index, "<>", "unexpected '<' (expecting an index term)")
-  raise(Proposition, "foo", "not a proposition")
+  raise(Proposition, "foo", "not a proposition", indexVars = List(new IVBound("foo", SNat())))
   raise(Index, "(5∧F)", "not a proposition")
-  raise(Index, "(T∨bar)", "not a proposition")
+  raise(Index, "(T∨bar)", "not a proposition", indexVars = List(new IVBound("bar", SNat())))
   raise(Index, "¬42", "not a proposition")
 
   roundtrip[PVoid](PType, "0")
@@ -166,7 +166,7 @@ class ParserTest extends AnyFreeSpec {
   parseTo[PSum](PType, "(0+1)", "(0 + 1)")
   parseTo[PSuspended](PType, "V^1", "↓↑1")
   // TODO roundtrip(PType, "{v : μF | (fold_F alg) v =_τ idx}")
-  parseTo[PInductive](PType, "fix I S (()=>(a-1)) => (1+a)", "μI ⊃ (() ⇒ (a - 1)) ⇒ (1 + a)")
+  parseTo[PInductive](PType, "fix I S (()=>(a-1)) => (1+a)", "μI ⊃ (() ⇒ (a - 1)) ⇒ (1 + a)", indexVars = List(new IVBound("a", SInt())))
   parseTo[PExists](PType, "Ea:B.1", "∃a : 𝔹 . 1")
   roundtrip[PExists](PType, "∃b : ℕ . μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ b") // ∃b : ℕ . Nat(b)
   parseTo[PProperty](PType, "(1&[ F ])", "(1 ∧ [F])")
