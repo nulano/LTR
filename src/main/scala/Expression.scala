@@ -153,7 +153,7 @@ case class MPVoid()(val token: Token) extends MatchPattern {
 
   // UnrefMatch0
   override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
-    case PVoid() => ()
+    case PVoid => ()
     case _ => throw TypeException(s"$this pattern does not match $head")
   }
 }
@@ -172,7 +172,7 @@ case class MPUnit(body: Expression)(val token: Token) extends MatchPattern {
 
   // UnrefMatch1
   override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
-    case PUnit() => body.checkType(vc, tp)
+    case PUnit => body.checkType(vc, tp)
     case _ => throw TypeException(s"$this pattern does not match $head")
   }
 }

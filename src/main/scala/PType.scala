@@ -5,8 +5,8 @@ object PType extends Parseable[PType] {
   def parse(pc: ParseContext): PType = {
     val tok = pc.pop()
     tok.tk match {
-      case Tk.Number if tok.text == "1" => PUnit()
-      case Tk.Number if tok.text == "0" => PVoid()
+      case Tk.Number if tok.text == "1" => PUnit
+      case Tk.Number if tok.text == "0" => PVoid
       case Tk.LParen => {
         val left = PType.parse(pc)
         val op = pc.pop(Tk.Times, Tk.Plus, Tk.And)
@@ -47,13 +47,13 @@ object PType extends Parseable[PType] {
   }
 }
 
-case class PUnit() extends PTypeBase[PUnit] {
+object PUnit extends PTypeBase[PUnit.type] {
   override def toString: String = "1"
 
   // AlgTp1
   override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = Set.empty
 
-  override def substituteIndex(replacement: Index, target: IndexVariable): PUnit = this
+  override def substituteIndex(replacement: Index, target: IndexVariable): PUnit.type = this
 }
 case class PProd(left: PType, right: PType) extends PTypeBase[PProd] {
   override def toString: String = s"($left × $right)"
@@ -65,13 +65,13 @@ case class PProd(left: PType, right: PType) extends PTypeBase[PProd] {
   override def substituteIndex(replacement: Index, target: IndexVariable): PProd =
     PProd((replacement / target)(left), (replacement / target)(right))
 }
-case class PVoid() extends PTypeBase[PVoid] {
+object PVoid extends PTypeBase[PVoid.type] {
   override def toString: String = "0"
 
   // AlgTp0
   override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = Set.empty
 
-  override def substituteIndex(replacement: Index, target: IndexVariable): PVoid = this
+  override def substituteIndex(replacement: Index, target: IndexVariable): PVoid.type = this
 }
 case class PSum(left: PType, right: PType) extends PTypeBase[PSum] {
   override def toString: String = s"($left + $right)"

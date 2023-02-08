@@ -50,7 +50,7 @@ case class ValUnit()(val token: Token) extends Value {
 
   // Unref ⇐ 1
   override def checkType(vc: VariableContext, tp: PType): Unit = tp match {
-    case PUnit() => ()
+    case PUnit => ()
     case _ => throw TypeException(s"$this does not have required type $tp")
   }
 }

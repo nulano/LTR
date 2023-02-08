@@ -4,9 +4,9 @@ object Sort extends Parseable[Sort] {
   override def parse(pc: ParseContext): Sort = {
     val tok = pc.pop()
     tok.tk match {
-      case Tk.Boolean => SBool()
-      case Tk.Natural => SNat()
-      case Tk.Integer => SInt()
+      case Tk.Boolean => SBool
+      case Tk.Natural => SNat
+      case Tk.Integer => SInt
       case Tk.LParen =>
         val left = Sort.parse(pc)
         pc.pop(Tk.Times)
@@ -18,13 +18,13 @@ object Sort extends Parseable[Sort] {
   }
 }
 
-case class SBool() extends Sort {
+object SBool extends Sort {
   override def toString: String = "𝔹"
 }
-case class SNat() extends Sort {
+object SNat extends Sort {
   override def toString: String = "ℕ"
 }
-case class SInt() extends Sort {
+object SInt extends Sort {
   override def toString: String = "ℤ"
 }
 case class SProd(left: Sort, right: Sort) extends Sort {

@@ -78,7 +78,7 @@ case class FUnit() extends FunctorProduct {
   override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = Set.empty
 
   // UnrefUnrollI
-  override def unroll(id: PInductive): PType = PUnit()
+  override def unroll(id: PInductive): PType = PUnit
 }
 case class FProduct(left: FunctorBase, right: FunctorProduct) extends FunctorProduct {
   override def toString: String = s"($left ⊗ $right)"

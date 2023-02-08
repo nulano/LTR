@@ -36,7 +36,7 @@ sealed trait IndexBase[T <: IndexBase[T]] extends Index, SubstitutableIndex[T]
 sealed trait Proposition extends Index, SubstitutableIndex[Proposition] {
   def checkCanSort(ctx: IndexVariable => Boolean): Unit
 
-  final override def sort(ctx: IndexVariable => Boolean): SBool = { checkCanSort(ctx); SBool() }
+  final override def sort(ctx: IndexVariable => Boolean): SBool.type = { checkCanSort(ctx); SBool }
 }
 sealed trait PropositionBase[T <: PropositionBase[T]] extends Proposition, SubstitutableIndex[T]
 
@@ -44,8 +44,8 @@ object Index extends Parseable[Index] {
   override def parse(pc: ParseContext): Index = {
     val tok = pc.pop()
     tok.tk match {
-      case Tk.Var if tok.text == "T" => IPTrue()
-      case Tk.Var if tok.text == "F" => IPFalse()
+      case Tk.Var if tok.text == "T" => IPTrue
+      case Tk.Var if tok.text == "F" => IPFalse
       case Tk.Var => IVariable(pc.getIndexVar(tok))
       case Tk.Number => INatConstant(tok.text.toInt)
       case Tk.Plus => IIntConstant(pc.pop(Tk.Number).text.toInt)
@@ -104,7 +104,7 @@ case class INatConstant(value: Int) extends IndexBase[INatConstant] {
   override def toString: String = s"$value"
 
   // IxConst
-  override def sort(ctx: IndexVariable => Boolean): Sort = SNat()
+  override def sort(ctx: IndexVariable => Boolean): SNat.type = SNat
 
   override def substituteIndex(replacement: Index, target: IndexVariable): INatConstant = this
 }
@@ -112,7 +112,7 @@ case class IIntConstant(value: Int) extends IndexBase[IIntConstant] {
   override def toString: String = f"$value%+d"
 
   // IxConst
-  override def sort(ctx: IndexVariable => Boolean): Sort = SInt()
+  override def sort(ctx: IndexVariable => Boolean): SInt.type = SInt
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IIntConstant = this
 }
@@ -126,7 +126,7 @@ case class ISum(left: Index, right: Index) extends IndexBase[ISum] {
     if ls != rs then
       throw SortException(this, s"sort mismatch: $ls + $rs")
     ls match
-      case SNat() | SInt() => ls
+      case SNat | SInt => ls
       case _ => throw SortException(this, s"can't perform addition on $ls")
   }
 
@@ -143,7 +143,7 @@ case class IDifference(left: Index, right: Index) extends IndexBase[IDifference]
     if ls != rs then
       throw SortException(this, s"sort mismatch: $ls - $rs")
     ls match
-      case SNat() | SInt() => ls
+      case SNat | SInt => ls
       case _ => throw SortException(this, s"can't perform subtraction on $ls")
   }
 
@@ -154,7 +154,7 @@ case class IPair(left: Index, right: Index) extends IndexBase[IPair] {
   override def toString: String = s"($left, $right)"
 
   // IxProd
-  override def sort(ctx: IndexVariable => Boolean): Sort =
+  override def sort(ctx: IndexVariable => Boolean): SProd =
     SProd(left.sort(ctx), right.sort(ctx))
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IPair =
@@ -210,7 +210,7 @@ case class IPLessEqual(left: Index, right: Index) extends PropositionBase[IPLess
     if ls != rs then
       throw SortException(this, s"sort mismatch: $ls ≤ $rs")
     ls match
-      case SNat() | SInt() => ()
+      case SNat | SInt => ()
       case _ => throw SortException(this, s"can't perform comparison on $ls")
   }
 
@@ -250,19 +250,19 @@ case class IPNot(prop: Proposition) extends PropositionBase[IPNot] {
   override def substituteIndex(replacement: Index, target: IndexVariable): IPNot =
     IPNot((replacement / target)(prop))
 }
-case class IPTrue() extends PropositionBase[IPTrue] {
+object IPTrue extends PropositionBase[IPTrue.type] {
   override def toString: String = "T"
 
   // IxConst
   override def checkCanSort(ctx: IndexVariable => Boolean): Unit = ()
 
-  override def substituteIndex(replacement: Index, target: IndexVariable): IPTrue = this
+  override def substituteIndex(replacement: Index, target: IndexVariable): IPTrue.type = this
 }
-case class IPFalse() extends PropositionBase[IPFalse] {
+object IPFalse extends PropositionBase[IPFalse.type] {
   override def toString: String = "F"
 
   // IxConst
   override def checkCanSort(ctx: IndexVariable => Boolean): Unit = ()
 
-  override def substituteIndex(replacement: Index, target: IndexVariable): IPFalse = this
+  override def substituteIndex(replacement: Index, target: IndexVariable): IPFalse.type = this
 }
