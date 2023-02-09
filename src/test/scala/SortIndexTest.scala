@@ -4,7 +4,7 @@ import scala.annotation.targetName
 import scala.language.implicitConversions
 
 //noinspection NonAsciiCharacters
-class IndexSortTest extends AnyFreeSpec {
+class SortIndexTest extends AnyFreeSpec {
 
   private case class TestCase(string: String, sort: Sort)
 

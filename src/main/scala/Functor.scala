@@ -23,12 +23,12 @@ object Functor extends Parseable[Functor] {
             pc.pop(Tk.RParen)
             FProduct(base, right)
         }
-      case Tk.I => FUnit()
+      case Tk.I => FUnit
       case Tk.LSquare =>
         val tp = PType.parse(pc)
         pc.pop(Tk.RSquare)
         FConstant(tp)
-      case Tk.Id => FIdentity()
+      case Tk.Id => FIdentity
       case _ => throw UnexpectedTokenParseException(tok, "a functor")
     }
   }
@@ -71,7 +71,7 @@ case class FSum(left: FunctorSum, right: FunctorSum) extends FunctorSum {
   // UnrefUnroll⊕
   override def unroll(id: PInductive): PType = PSum(left.unroll(id), right.unroll(id))
 }
-case class FUnit() extends FunctorProduct {
+object FUnit extends FunctorProduct {
   override def toString: String = "I"
 
   // AlgFunctorI
@@ -89,7 +89,7 @@ case class FProduct(left: FunctorBase, right: FunctorProduct) extends FunctorPro
   
   // UnrefUnrollConst, UnrefUnrollId
   override def unroll(id: PInductive): PType =
-    PProd(left match { case FConstant(tp) => tp; case FIdentity() => id }, right.unroll(id))
+    PProd(left match { case FConstant(tp) => tp; case FIdentity => id }, right.unroll(id))
 }
 case class FConstant(tp: PType) extends FunctorBase {
   override def toString: String = s"[$tp]"
@@ -98,7 +98,7 @@ case class FConstant(tp: PType) extends FunctorBase {
   override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
     tp.wellFormed(ctx)
 }
-case class FIdentity() extends FunctorBase {
+object FIdentity extends FunctorBase {
   override def toString: String = "Id"
 
   // AlgFunctorId

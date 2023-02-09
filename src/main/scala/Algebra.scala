@@ -83,14 +83,14 @@ object Algebra extends Parseable[Algebra] {
                  sort: Sort): Unit =
     (pattern, functor) match {
       // AlgAlgI
-      case (_: APUnit, _: FUnit) =>
+      case (_: APUnit, _: FUnit.type) =>
         val result = index.sort(valueDetermined)
         if result != sort then
           throw TypeException(s"algebra result is incompatible with requirement: $result != $sort")
       case (alg: APProduct, fun: FProduct) =>
         (alg.left, fun.left) match {
           // AlgAlgId⊗
-          case (id: APIdentity, _: FIdentity) =>
+          case (id: APIdentity, _: FIdentity.type) =>
             val v = id.variable.withSort(sort)
             wellFormed(valueDetermined + v, ctx + v, alg.right, (IVariable(v) / id.variable)(index), fun.right, sort)
           // AlgAlgConst⊗

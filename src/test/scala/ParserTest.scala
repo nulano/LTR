@@ -92,9 +92,9 @@ class ParserTest extends AnyFreeSpec {
   roundtrip[ExpRecursive](Expression, "rec x : (1 → ↑1) . λy . let z = x(y); return z")
   raise(Expression, "{return <>}", "unexpected '{' (expecting an expression)")
 
-  parseTo[FIdentity](FunctorBase, "id", "Id")
+  parseTo[FIdentity.type](FunctorBase, "id", "Id")
   parseTo[FConstant](FunctorBase, "[ 1 ]", "[1]")
-  parseTo[FUnit](FunctorProduct, " I ", "I")
+  parseTo[FUnit.type](FunctorProduct, " I ", "I")
   parseTo[FProduct](FunctorProduct, "( [ 1 ] (X)(id(X)I))", "([1] ⊗ (Id ⊗ I))")
   parseTo[FSum](FunctorSum, "( ( I (+) (Id⊗I) )(+)(I(+)I) )", "((I ⊕ (Id ⊗ I)) ⊕ (I ⊕ I))")
   raise(Functor, "<>", "unexpected '<' (expecting a functor)")
@@ -168,6 +168,7 @@ class ParserTest extends AnyFreeSpec {
   parseTo[PSum](PType, "(0+1)", "(0 + 1)")
   parseTo[PSuspended](PType, "V^1", "↓↑1")
   // TODO roundtrip(PType, "{v : μF | (fold_F alg) v =_τ idx}")
+  // TODO algebra does not see outer vars
   parseTo[PInductive](PType, "fix I S (()=>(a-1)) => (1+a)", "μI ⊃ (() ⇒ (a - 1)) ⇒ (1 + a)", indexVars = List(new IVBound("a", SInt)))
   parseTo[PExists](PType, "Ea:B.1", "∃a : 𝔹 . 1")
   roundtrip[PExists](PType, "∃b : ℕ . μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ b") // ∃b : ℕ . Nat(b)
