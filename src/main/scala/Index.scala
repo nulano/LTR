@@ -4,6 +4,11 @@ trait SubstitutableIndex[+T] {
   def substituteIndex(replacement: Index, target: IndexVariable): T
 }
 
+type IndexVariableCtx = Set[IndexVariable]
+type PropositionCtx = List[Proposition]
+type LogicCtx = (IndexVariableCtx, PropositionCtx)
+type AlgorithmicCtx = Map[IVAlgorithmic, Option[Index]]
+
 trait WellFormed {
   /**
    * Check that under ctx, this is well-formed, returning value-determined indexes,
@@ -11,7 +16,7 @@ trait WellFormed {
    * @param ctx the set of logic variables that are in context, i.e. Θ ∪ Δ
    * @return the set of value-determined indexes, i.e. Ξ
    */
-  def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable]
+  def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx
 }
 
 sealed trait Index extends SubstitutableIndex[Index] {

@@ -16,6 +16,12 @@ object IVBound extends Parseable[IndexVariable] {
     new IVBound(name, sort)
 }
 
+class IVAlgorithmic(val variable: IndexVariable) extends IndexVariable {
+  override def name: String = variable.name.patch(1, "\u0302", 0)
+  override def sort: Sort = variable.sort
+  override def toString: String = s"${name}_${super.hashCode.toHexString} : $sort"
+}
+
 class IVPlaceholder(val name: String) extends IndexVariable {
   override def sort: Sort = throw new IllegalStateException("placeholder variable has no sort")
 

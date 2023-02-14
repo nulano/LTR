@@ -6,7 +6,7 @@ sealed trait FunctorSum extends Functor {
 sealed trait FunctorProduct extends FunctorSum
 sealed trait FunctorBase extends Functor
 
-object Functor extends Parseable[Functor] {
+object Functor extends Parseable[Functor], TypeEquality[Functor] {
   override def parse(pc: ParseContext): Functor = {
     val tok = pc.pop()
     tok.tk match {
@@ -31,6 +31,17 @@ object Functor extends Parseable[Functor] {
       case Tk.Id => FIdentity
       case _ => throw UnexpectedTokenParseException(tok, "a functor")
     }
+  }
+
+  override def equivalent(left: Functor, right: Functor)
+                         (ctx: IndexVariableCtx, alg: AlgorithmicCtx): (SubtypingConstraint, AlgorithmicCtx) = {
+    (left, right) match
+      case (FConstant(l), FConstant(r)) => PType.equivalent(l, r)(ctx, alg)
+      case (FIdentity, FIdentity) => (SCTrue, alg)
+      case (FUnit, FUnit) => (SCTrue, alg)
+      case (FProduct(ll, lr), FProduct(rl, rr)) => Functor.equivalent((ll, lr), (rl, rr))(ctx, alg)
+      case (FSum(ll, lr), FSum(rl, rr)) => Functor.equivalent((ll, lr), (rl, rr))(ctx, alg)
+      case _ => throw TypeException(s"functors are not equivalent: $left ≢ $right")
   }
 }
 object FunctorSum extends Parseable[FunctorSum] {
@@ -65,7 +76,7 @@ case class FSum(left: FunctorSum, right: FunctorSum) extends FunctorSum {
   override def toString: String = s"($left ⊕ $right)"
 
   // AlgFunctor⊕
-  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx =
     left.wellFormed(ctx) & right.wellFormed(ctx)
 
   // UnrefUnroll⊕
@@ -75,7 +86,7 @@ object FUnit extends FunctorProduct {
   override def toString: String = "I"
 
   // AlgFunctorI
-  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = Set.empty
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = Set.empty
 
   // UnrefUnrollI
   override def unroll(id: PInductive): PType = PUnit
@@ -84,7 +95,7 @@ case class FProduct(left: FunctorBase, right: FunctorProduct) extends FunctorPro
   override def toString: String = s"($left ⊗ $right)"
 
   // AlgFunctor⊗
-  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx =
     left.wellFormed(ctx) | right.wellFormed(ctx)
   
   // UnrefUnrollConst, UnrefUnrollId
@@ -95,12 +106,12 @@ case class FConstant(tp: PType) extends FunctorBase {
   override def toString: String = s"[$tp]"
 
   // AlgFunctorConstant
-  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx =
     tp.wellFormed(ctx)
 }
 object FIdentity extends FunctorBase {
   override def toString: String = "Id"
 
   // AlgFunctorId
-  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = Set.empty
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = Set.empty
 }

@@ -75,8 +75,8 @@ object Algebra extends Parseable[Algebra] {
    * @param sort            the resulting sort, i.e. τ
    */
   @tailrec
-  private def wellFormed(valueDetermined: Set[IndexVariable],
-                 ctx: Set[IndexVariable],
+  private def wellFormed(valueDetermined: IndexVariableCtx,
+                 ctx: IndexVariableCtx,
                  pattern: AlgebraProductPattern,
                  index: Index,
                  functor: FunctorProduct,
@@ -120,8 +120,8 @@ object Algebra extends Parseable[Algebra] {
    * @param functor         the functor to check, i.e. F
    * @param sort            the resulting sort, i.e. τ
    */
-  def wellFormed(valueDetermined: Set[IndexVariable],
-                 ctx: Set[IndexVariable],
+  def wellFormed(valueDetermined: IndexVariableCtx,
+                 ctx: IndexVariableCtx,
                  algebra: Algebra,
                  functor: Functor,
                  sort: Sort): Unit =

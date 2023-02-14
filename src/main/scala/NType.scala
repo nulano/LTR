@@ -34,7 +34,7 @@ case class NFunction(arg: PType, body: NType) extends NTypeBase[NFunction] {
   override def toString: String = s"($arg → $body)"
 
   // AlgTp→
-  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx =
     arg.wellFormed(ctx) | body.wellFormed(ctx)
 
   override def substituteIndex(replacement: Index, target: IndexVariable): NFunction =
@@ -44,7 +44,7 @@ case class NComputation(result: PType) extends NTypeBase[NComputation] {
   override def toString: String = s"↑$result"
 
   // AlgTp↑
-  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] =
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx =
   { result.wellFormed(ctx); Set.empty }
 
   override def substituteIndex(replacement: Index, target: IndexVariable): NComputation =
@@ -66,7 +66,7 @@ case class NForAll(variable: IndexVariable, tp: NType) extends NTypeBase[NForAll
     }
 
   // AlgTp∀
-  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = {
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = {
     val body = tp.wellFormed(ctx + variable)
     if !body.contains(variable) then
       throw TypeException(s"cannot determine value of universally quantified index: $this")
@@ -80,7 +80,7 @@ case class NPrecondition(proposition: Proposition, tp: NType) extends NTypeBase[
   override def toString: String = s"[$proposition] ⊃ $tp"
 
   // AlgTp⊃
-  override def wellFormed(ctx: Set[IndexVariable]): Set[IndexVariable] = {
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = {
     proposition.sort(ctx); tp.wellFormed(ctx)
   }
   
