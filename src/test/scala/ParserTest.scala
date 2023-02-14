@@ -131,6 +131,7 @@ class ParserTest extends AnyFreeSpec {
   raise(Algebra, "( ‖ () ⇒ 1)", "unexpected '‖' (expecting a sum algebra pattern)")
   raise(Algebra, "(inl () ⇒ 1 ‖ inr () ⇒ 2 ‖ )", "unexpected ')' (expecting a sum algebra pattern)")
   raise(Algebra, "(inl () ⇒ 1 ‖ ‖ inr () ⇒ 2)", "unexpected '‖' (expecting a sum algebra pattern)")
+  raise(Algebra, "(() ⇒ a)", "index variable is not bound", List(new IVBound("a", SNat)))
 
   parseTo[SBool.type](Sort, "B", "𝔹")
   parseTo[SNat.type](Sort, "N", "ℕ")
@@ -169,7 +170,7 @@ class ParserTest extends AnyFreeSpec {
   parseTo[PSuspended](PType, "V^1", "↓↑1")
   // TODO roundtrip(PType, "{v : μF | (fold_F alg) v =_τ idx}")
   // TODO algebra does not see outer vars
-  parseTo[PInductive](PType, "fix I S (()=>(a-1)) => (1+a)", "μI ⊃ (() ⇒ (a - 1)) ⇒ (1 + a)", indexVars = List(new IVBound("a", SInt)))
+  parseTo[PInductive](PType, "fix I S (()=>(7-1)) => (1+a)", "μI ⊃ (() ⇒ (7 - 1)) ⇒ (1 + a)", indexVars = List(new IVBound("a", SInt)))
   parseTo[PExists](PType, "Ea:B.1", "∃a : 𝔹 . 1")
   roundtrip[PExists](PType, "∃b : ℕ . μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ b") // ∃b : ℕ . Nat(b)
   parseTo[PProperty](PType, "(1&[ F ])", "(1 ∧ [F])")

@@ -55,7 +55,7 @@ object Algebra extends Parseable[Algebra] {
       while {
         val p = AlgebraSumPattern.parse(pc)
         pc.pop(Tk.DRight)
-        val t = Index.parse(p.extendParseContext(pc))
+        val t = Index.parse(p.extendParseContext(ParseContext(pc.in)))
         builder += ((p, t))
         pc.pop(Tk.DBar, Tk.RParen).tk == Tk.DBar
       } do ()
