@@ -1,24 +1,22 @@
 sealed trait NType extends WellFormed, SubstitutableIndex[NType]
 sealed trait NTypeBase[T <: NTypeBase[T]] extends NType, SubstitutableIndex[T]
 
-object NType extends Parseable[NType] {
-  def parse(pc: ParseContext): NType = {
+object NType extends Parseable[NType], TypeEquality[NType] {
+  override def parse(pc: ParseContext): NType = {
     val tok = pc.pop()
     tok.tk match {
-      case Tk.LParen => {
+      case Tk.LParen =>
         val arg = PType.parse(pc)
         pc.pop(Tk.Right)
         val body = NType.parse(pc)
         pc.pop(Tk.RParen)
         NFunction(arg, body)
-      }
       case Tk.Up => NComputation(PType.parse(pc))
-      case Tk.ForAll => {
+      case Tk.ForAll =>
         val variable = IVBound.parse(pc)
         pc.pop(Tk.Dot)
         val tp = NType.parse(pc + variable)
         NForAll(variable, tp)
-      }
       case Tk.LSquare =>
         val proposition = Proposition.parse(pc)
         pc.pop(Tk.RSquare)
@@ -26,6 +24,33 @@ object NType extends Parseable[NType] {
         val tp = NType.parse(pc)
         NPrecondition(proposition, tp)
       case _ => throw UnexpectedTokenParseException(tok, "a negative type")
+    }
+  }
+
+  override def equivalent(left: NType, right: NType)
+                         (ctx: IndexVariableCtx, alg: AlgorithmicCtx): (SubtypingConstraint, AlgorithmicCtx) = {
+    (left, right) match {
+      // Tp≡⁻/⊣↑
+      case (NComputation(l), NComputation(r)) => (SCPEquivalent(l, r), alg)
+      // Tp≡⁻/⊣⊃
+      case (NPrecondition(lp, lt), NPrecondition(rp, rt)) =>
+        val (w1, alg1) = NType.equivalent(lt, rt)(ctx, alg)
+        // TODO lp = [alg1]lp
+        val w2 = SCEquivalent(lp, rp)
+        (SCConjunction(w1, w2), alg1)
+      // Tp≡⁻/⊣∀
+      case (NForAll(lv, lt), NForAll(rv, rt)) =>
+        val temp = IVariable(new IVBound(lv.name, lv.sort))
+        val (w, alg2) = NType.equivalent((temp / lv)(lt), (temp / rv)(rt))(ctx + temp.variable, alg)
+        (SCForAll(temp.variable, w), alg2)
+      // Tp≡⁻/⊣→
+      case (NFunction(la, lb), NFunction(ra, rb)) =>
+        val (w1, alg1) = PType.equivalent(la, ra)(ctx, alg)
+        // TODO lb = [alg1]lb
+        val (w2, alg2) = NType.equivalent(lb, rb)(ctx, alg1)
+        // TODO w1 = [alg1]w1
+        (SCConjunction(w1, w2), alg2)
+      case _ => throw TypeException(s"negative types are not equivalent: $left ≢ $right")
     }
   }
 }

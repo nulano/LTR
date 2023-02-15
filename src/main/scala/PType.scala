@@ -60,7 +60,7 @@ object PType extends Parseable[PType], TypeEquality[PType] {
         // TODO rp = [alg1]rp
         val alg2 = (lp, rp) match {
           // PropEquivInst
-          case (IPEqual(la, lb), IPEqual(IVariable(rav: IVAlgorithmic), rb)) =>
+          case (IPEqual(la, _), IPEqual(IVariable(rav: IVAlgorithmic), _)) =>
             val ls = la.sort(ctx)
             if ls == rav.sort then
               alg1  // TODO +(rav = la) ???
@@ -76,7 +76,23 @@ object PType extends Parseable[PType], TypeEquality[PType] {
         val temp = IVariable(new IVBound(lv.name, lv.sort))
         val (w, alg2) = PType.equivalent((temp / lv)(lt), (temp / rv)(rt))(ctx + temp.variable, alg)
         (SCForAll(temp.variable, w), alg2)
-      // TODO Tp≡⁺/⊣μ
+      // Tp≡⁺/⊣μ
+      case (PInductive(lf, la, li), PInductive(rf, ra, ri)) if la == ra =>
+        val (w1, alg1) = Functor.equivalent(lf, rf)(ctx, alg)
+        ri match
+          case IVariable(v: IVAlgorithmic) =>
+            // TODO if t ground then
+            //        assert((v = t) ∉ alg1)
+            //        alg1 += (v = li)
+            //        w1 = [alg1]w1
+            //      else
+            //        assert((v = t) ∈ alg1)
+            ()
+          case _ =>
+            // TODO check ∀â ∈ dom(alg) . [alg]ri ≠ â
+            ()
+        // TODO ri = [alg1]ri
+        (SCConjunction(w1, SCProposition(IPEqual(li, ri))), alg1)
       // Tp≡⁺/⊣↓
       case (PSuspended(l), PSuspended(r)) => (SCNEquivalent(l, r), alg)
       case _ => throw TypeException(s"positive types are not equivalent: $left ≢ $right")
