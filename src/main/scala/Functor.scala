@@ -33,14 +33,13 @@ object Functor extends Parseable[Functor], TypeEquality[Functor] {
     }
   }
 
-  override def equivalent(left: Functor, right: Functor)
-                         (ctx: IndexVariableCtx, alg: AlgorithmicCtx): (SubtypingConstraint, AlgorithmicCtx) = {
+  override def equivalent(left: Functor, right: Functor)(ctx: IndexVariableCtx): SubtypingConstraint = {
     (left, right) match
-      case (FConstant(l), FConstant(r)) => PType.equivalent(l, r)(ctx, alg)
-      case (FIdentity, FIdentity) => (SCTrue, alg)
-      case (FUnit, FUnit) => (SCTrue, alg)
-      case (FProduct(ll, lr), FProduct(rl, rr)) => Functor.equivalent((ll, lr), (rl, rr))(ctx, alg)
-      case (FSum(ll, lr), FSum(rl, rr)) => Functor.equivalent((ll, lr), (rl, rr))(ctx, alg)
+      case (FConstant(l), FConstant(r)) => PType.equivalent(l, r)(ctx)
+      case (FIdentity, FIdentity) => SCTrue
+      case (FUnit, FUnit) => SCTrue
+      case (FProduct(ll, lr), FProduct(rl, rr)) => Functor.equivalent((ll, lr), (rl, rr))(ctx)
+      case (FSum(ll, lr), FSum(rl, rr)) => Functor.equivalent((ll, lr), (rl, rr))(ctx)
       case _ => throw TypeException(s"functors are not equivalent: $left ≢ $right")
   }
 }

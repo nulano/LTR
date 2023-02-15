@@ -27,29 +27,25 @@ object NType extends Parseable[NType], TypeEquality[NType] {
     }
   }
 
-  override def equivalent(left: NType, right: NType)
-                         (ctx: IndexVariableCtx, alg: AlgorithmicCtx): (SubtypingConstraint, AlgorithmicCtx) = {
+  override def equivalent(left: NType, right: NType)(ctx: IndexVariableCtx): SubtypingConstraint = {
     (left, right) match {
       // Tp≡⁻/⊣↑
-      case (NComputation(l), NComputation(r)) => (SCPEquivalent(l, r), alg)
+      case (NComputation(l), NComputation(r)) => SCPEquivalent(l, r)
       // Tp≡⁻/⊣⊃
       case (NPrecondition(lp, lt), NPrecondition(rp, rt)) =>
-        val (w1, alg1) = NType.equivalent(lt, rt)(ctx, alg)
-        // TODO lp = [alg1]lp
+        val w1 = NType.equivalent(lt, rt)(ctx)
         val w2 = SCEquivalent(lp, rp)
-        (SCConjunction(w1, w2), alg1)
+        SCConjunction(w1, w2)
       // Tp≡⁻/⊣∀
-      case (NForAll(lv, lt), NForAll(rv, rt)) =>
+      case (NForAll(lv, lt), NForAll(rv, rt)) if lv.sort == rv.sort =>
         val temp = IVariable(new IVBound(lv.name, lv.sort))
-        val (w, alg2) = NType.equivalent((temp / lv)(lt), (temp / rv)(rt))(ctx + temp.variable, alg)
-        (SCForAll(temp.variable, w), alg2)
+        val w = NType.equivalent((temp / lv)(lt), (temp / rv)(rt))(ctx + temp.variable)
+        SCForAll(temp.variable, w)
       // Tp≡⁻/⊣→
       case (NFunction(la, lb), NFunction(ra, rb)) =>
-        val (w1, alg1) = PType.equivalent(la, ra)(ctx, alg)
-        // TODO lb = [alg1]lb
-        val (w2, alg2) = NType.equivalent(lb, rb)(ctx, alg1)
-        // TODO w1 = [alg1]w1
-        (SCConjunction(w1, w2), alg2)
+        val w1 = PType.equivalent(la, ra)(ctx)
+        val w2 = NType.equivalent(lb, rb)(ctx)
+        SCConjunction(w1, w2)
       case _ => throw TypeException(s"negative types are not equivalent: $left ≢ $right")
     }
   }

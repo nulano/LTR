@@ -1,15 +1,13 @@
 
 trait TypeEquality[T] {
-  def equivalent(left: T, right: T)(ctx: IndexVariableCtx, alg: AlgorithmicCtx): (SubtypingConstraint, AlgorithmicCtx)
+  def equivalent(left: T, right: T)(ctx: IndexVariableCtx): SubtypingConstraint
 
-  final def equivalent(left: (T, T), right: (T, T))(ctx: IndexVariableCtx, alg: AlgorithmicCtx): (SubtypingConstraint, AlgorithmicCtx) = {
+  final def equivalent(left: (T, T), right: (T, T))(ctx: IndexVariableCtx): SubtypingConstraint = {
     val (ll, lr) = left
     val (rl, rr) = right
-    val (w1, alg1) = equivalent(ll, rl)(ctx, alg)
-    // TODO rr = [alg1]rr
-    val (w2, alg2) = equivalent(lr, rr)(ctx, alg1)
-    // TODO w1 = [alg2]w1
-    (SCConjunction(w1, w2), alg2)
+    val w1 = equivalent(ll, rl)(ctx)
+    val w2 = equivalent(lr, rr)(ctx)
+    SCConjunction(w1, w2)
   }
 }
 

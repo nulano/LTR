@@ -7,7 +7,6 @@ trait SubstitutableIndex[+T] {
 type IndexVariableCtx = Set[IndexVariable]
 type PropositionCtx = List[Proposition]
 type LogicCtx = (IndexVariableCtx, PropositionCtx)
-type AlgorithmicCtx = Map[IVAlgorithmic, Option[Index]]
 
 trait WellFormed {
   /**

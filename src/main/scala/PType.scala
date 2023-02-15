@@ -43,58 +43,47 @@ object PType extends Parseable[PType], TypeEquality[PType] {
     }
   }
 
-  override def equivalent(left: PType, right: PType)
-                         (ctx: IndexVariableCtx, alg: AlgorithmicCtx): (SubtypingConstraint, AlgorithmicCtx) = {
+  override def equivalent(left: PType, right: PType)(ctx: IndexVariableCtx): SubtypingConstraint = {
     (left, right) match
       // Tp≡⁺/⊣1
-      case (PUnit, PUnit) => (SCTrue, alg)
+      case (PUnit, PUnit) => SCTrue
       // Tp≡⁺/⊣0
-      case (PVoid, PVoid) => (SCTrue, alg)
+      case (PVoid, PVoid) => SCTrue
       // Tp≡⁺/⊣×
-      case (PProd(ll, lr), PProd(rl, rr)) => PType.equivalent((ll, lr), (rl, rr))(ctx, alg)
+      case (PProd(ll, lr), PProd(rl, rr)) => PType.equivalent((ll, lr), (rl, rr))(ctx)
       // Tp≡⁺/⊣+
-      case (PSum(ll, lr), PSum(rl, rr)) => PType.equivalent((ll, lr), (rl, rr))(ctx, alg)
+      case (PSum(ll, lr), PSum(rl, rr)) => PType.equivalent((ll, lr), (rl, rr))(ctx)
       // Tp≡⁺/⊣∧
       case (PProperty(lt, lp), PProperty(rt, rp)) =>
-        val (w1, alg1) = PType.equivalent(lt, rt)(ctx, alg)
-        // TODO rp = [alg1]rp
-        val alg2 = (lp, rp) match {
+        val w1 = PType.equivalent(lt, rt)(ctx)
+        (lp, rp) match {
           // PropEquivInst
-          case (IPEqual(la, _), IPEqual(IVariable(rav: IVAlgorithmic), _)) =>
+          case (IPEqual(la, _), IPEqual(IVariable(rav: IVAlgorithmic), _)) if rav.solution.isEmpty =>
             val ls = la.sort(ctx)
             if ls == rav.sort then
-              alg1  // TODO +(rav = la) ???
-            else
-              alg1
-          case _ => alg1
+              rav.solution = Some(la)
+            // TODO else ???
+          case _ => ()
         }
-        // TODO w1 = [alg2]w1
-        // TODO rp = [alg2]rp
-        (SCConjunction(w1, SCEquivalent(lp, rp)), alg2)
+        SCConjunction(w1, SCEquivalent(lp, rp))
       // Tp≡⁺/⊣∃
-      case (PExists(lv, lt), PExists(rv, rt)) =>
+      case (PExists(lv, lt), PExists(rv, rt)) if lv.sort == rv.sort =>
         val temp = IVariable(new IVBound(lv.name, lv.sort))
-        val (w, alg2) = PType.equivalent((temp / lv)(lt), (temp / rv)(rt))(ctx + temp.variable, alg)
-        (SCForAll(temp.variable, w), alg2)
+        val w = PType.equivalent((temp / lv)(lt), (temp / rv)(rt))(ctx + temp.variable)
+        SCForAll(temp.variable, w)
       // Tp≡⁺/⊣μ
       case (PInductive(lf, la, li), PInductive(rf, ra, ri)) if la == ra =>
-        val (w1, alg1) = Functor.equivalent(lf, rf)(ctx, alg)
+        val w1 = Functor.equivalent(lf, rf)(ctx)
         ri match
-          case IVariable(v: IVAlgorithmic) =>
-            // TODO if t ground then
-            //        assert((v = t) ∉ alg1)
-            //        alg1 += (v = li)
-            //        w1 = [alg1]w1
-            //      else
-            //        assert((v = t) ∈ alg1)
-            ()
-          case _ =>
+          case IVariable(rv: IVAlgorithmic) if rv.solution.isEmpty =>
+            // TODO only if li ground
+            rv.solution = Option(li)
+          case _ => ()
+            // TODO if solved by functor equivalence above, skip this
             // TODO check ∀â ∈ dom(alg) . [alg]ri ≠ â
-            ()
-        // TODO ri = [alg1]ri
-        (SCConjunction(w1, SCProposition(IPEqual(li, ri))), alg1)
+        SCConjunction(w1, SCProposition(IPEqual(li, ri)))
       // Tp≡⁺/⊣↓
-      case (PSuspended(l), PSuspended(r)) => (SCNEquivalent(l, r), alg)
+      case (PSuspended(l), PSuspended(r)) => SCNEquivalent(l, r)
       case _ => throw TypeException(s"positive types are not equivalent: $left ≢ $right")
   }
 }

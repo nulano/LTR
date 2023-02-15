@@ -17,6 +17,7 @@ object IVBound extends Parseable[IndexVariable] {
 }
 
 class IVAlgorithmic(val variable: IndexVariable) extends IndexVariable {
+  var solution: Option[Index] = None
   override def name: String = variable.name.patch(1, "\u0302", 0)
   override def sort: Sort = variable.sort
   override def toString: String = s"${name}_${super.hashCode.toHexString} : $sort"
