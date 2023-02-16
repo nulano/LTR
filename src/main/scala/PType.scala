@@ -76,8 +76,10 @@ object PType extends Parseable[PType], TypeEquality[PType] {
         val w1 = Functor.equivalent(lf, rf)(ctx)
         ri match
           case IVariable(rv: IVAlgorithmic) if rv.solution.isEmpty =>
-            // TODO only if li ground
-            rv.solution = Option(li)
+            if li.isGround then
+              rv.solution = Option(li)
+            else
+              throw TypeException(s"failed to determine algorithmic variable $rv") // TODO ???
           case _ => ()
             // TODO if solved by functor equivalence above, skip this
             // TODO check ∀â ∈ dom(alg) . [alg]ri ≠ â

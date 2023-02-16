@@ -35,6 +35,16 @@ sealed trait Index extends SubstitutableIndex[Index] {
    * @return the set of value-determined indexes, i.e. τ
    */
   def sort(ctx: IndexVariable => Boolean): Sort
+
+  /**
+   * Check whether this index has no free variables,
+   * i.e. that <code>this.sort(_ => false)</code> does not throw a SortException.
+   * @return true if this term has no free variables, false otherwise
+   */
+  final def isGround: Boolean =
+    try
+      sort(_ => false); true
+    catch case _: SortException => false
 }
 sealed trait IndexBase[T <: IndexBase[T]] extends Index, SubstitutableIndex[T]
 sealed trait Proposition extends Index, SubstitutableIndex[Proposition] {
