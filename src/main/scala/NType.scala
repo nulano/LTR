@@ -1,7 +1,9 @@
-sealed trait NType extends WellFormed, SubstitutableIndex[NType]
+sealed trait NType extends Extracts[NType], WellFormed, SubstitutableIndex[NType] {
+  override def extract: (NType, LogicCtx) = (this, (Set.empty, List.empty))
+}
 sealed trait NTypeBase[T <: NTypeBase[T]] extends NType, SubstitutableIndex[T]
 
-object NType extends Parseable[NType], TypeEquality[NType] {
+object NType extends Parseable[NType], TypeEquality[NType], TypeSubtype[NType] {
   override def parse(pc: ParseContext): NType = {
     val tok = pc.pop()
     tok.tk match {
@@ -49,10 +51,44 @@ object NType extends Parseable[NType], TypeEquality[NType] {
       case _ => throw TypeException(s"negative types are not equivalent: $left ≢ $right")
     }
   }
+
+  override def subtype(left: NType, right: NType)(ctx: IndexVariableCtx): SubtypingConstraint = {
+    (left, right) match {
+      // <:⁻/⊣↑
+      case (NComputation(l), NComputation(r)) =>
+        val (le, (_, lp)) = l.extract
+        lp.foldRight(SCPSubtype(le, r))(SCPrecondition.apply)
+      // <:⁻/⊣⊃L
+      case (NPrecondition(lp, lt), _) =>
+        val w1 = NType.subtype(lt, right)(ctx)
+        val w2 = SCProposition(lp)
+        SCConjunction(w1, w2)
+      // <:⁻/⊣∀L
+      case (NForAll(lv, lt), _) =>
+        val temp = new IVAlgorithmic(lv)
+        val w = NType.equivalent((IVariable(temp) / lv)(lt), right)(ctx + temp)
+        if temp.solution.isEmpty then
+          throw TypeException(s"failed to determine algorithmic variable $temp")
+        else SCForAll(temp.variable, w)
+      // <:⁻/⊣→
+      case (NFunction(la, lb), NFunction(ra, rb)) =>
+        val w1 = PType.subtype(ra, la)(ctx)
+        val w2 = NType.subtype(lb, rb)(ctx)
+        SCConjunction(w1, w2)
+      case _ => throw TypeException(s"negative types are not subtypes: $left </: $right")
+    }
+  }
 }
 
 case class NFunction(arg: PType, body: NType) extends NTypeBase[NFunction] {
   override def toString: String = s"($arg → $body)"
+
+  // ⇝⁻→
+  override def extract: (NType, LogicCtx) = {
+    val (le, (lv, lp)) = arg.extract
+    val (re, (rv, rp)) = body.extract
+    (NFunction(le, re), (lv ++ rv, lp ++ rp))
+  }
 
   // AlgTp→
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx =
@@ -86,6 +122,12 @@ case class NForAll(variable: IndexVariable, tp: NType) extends NTypeBase[NForAll
       case _ => false
     }
 
+  // ⇝⁻∀
+  override def extract: (NType, LogicCtx) = {
+    val (tpe, (v, p)) = tp.extract
+    (tpe, (v + variable, p))
+  }
+
   // AlgTp∀
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = {
     val body = tp.wellFormed(ctx + variable)
@@ -99,6 +141,12 @@ case class NForAll(variable: IndexVariable, tp: NType) extends NTypeBase[NForAll
 }
 case class NPrecondition(proposition: Proposition, tp: NType) extends NTypeBase[NPrecondition] {
   override def toString: String = s"[$proposition] ⊃ $tp"
+
+  // ⇝⁻⊃
+  override def extract: (NType, LogicCtx) = {
+    val (tpe, (v, p)) = tp.extract
+    (tpe, (v, proposition +: p))
+  }
 
   // AlgTp⊃
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = {

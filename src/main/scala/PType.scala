@@ -1,7 +1,9 @@
-sealed trait PType extends WellFormed, SubstitutableIndex[PType]
+sealed trait PType extends Extracts[PType], WellFormed, SubstitutableIndex[PType] {
+  override def extract: (PType, LogicCtx) = (this, (Set.empty, List.empty))
+}
 sealed trait PTypeBase[T <: PTypeBase[T]] extends PType, SubstitutableIndex[T]
 
-object PType extends Parseable[PType], TypeEquality[PType] {
+object PType extends Parseable[PType], TypeEquality[PType], TypeSubtype[PType] {
   override def parse(pc: ParseContext): PType = {
     val tok = pc.pop()
     tok.tk match {
@@ -88,6 +90,57 @@ object PType extends Parseable[PType], TypeEquality[PType] {
       case (PSuspended(l), PSuspended(r)) => SCNEquivalent(l, r)
       case _ => throw TypeException(s"positive types are not equivalent: $left ≢ $right")
   }
+
+  override def subtype(left: PType, right: PType)(ctx: IndexVariableCtx): SubtypingConstraint = {
+    (left, right) match
+      // <:⁺/⊣0
+      case (PVoid, PVoid) => SCTrue
+      // <:⁺/⊣1
+      case (PUnit, PUnit) => SCTrue
+      // <:⁺/⊣×
+      case (PProd(ll, lr), PProd(rl, rr)) =>
+        SCConjunction(PType.subtype(ll, rl)(ctx), PType.subtype(lr, rr)(ctx))
+      // <:⁺/⊣+
+      case (PSum(ll, lr), PSum(rl, rr)) => PType.equivalent((ll, lr), (rl, rr))(ctx)
+      // <:⁺/⊣∧R
+      case (_, PProperty(rt, rp)) =>
+        val w1 = PType.subtype(left, rt)(ctx)
+        rp match {
+          // Inst
+          case IPEqual(IVariable(rav: IVAlgorithmic), rv) if rav.solution.isEmpty =>
+            val ls = rv.sort(ctx)
+            if ls == rav.sort then
+              rav.solution = Some(rv)
+            // TODO else ???
+          case _ => ()
+        }
+        SCConjunction(w1, SCProposition(rp))
+      // <:⁺/⊣∃R
+      case (_, PExists(rv, rt)) =>
+        val temp = new IVAlgorithmic(rv)
+        val w = PType.subtype(left, (IVariable(temp) / rv)(rt))(ctx + temp)
+        if temp.solution.isEmpty then
+          throw TypeException(s"failed to determine algorithmic variable $temp")
+        else w
+      // <:⁺/⊣μ
+      case (PInductive(lf, la, li), PInductive(rf, ra, ri)) if la == ra =>
+        val w1 = Functor.equivalent(lf, rf)(ctx)
+        ri match
+          case IVariable(rv: IVAlgorithmic) if rv.solution.isEmpty =>
+            if li.isGround then
+              rv.solution = Option(li)
+            else
+              throw TypeException(s"failed to determine algorithmic variable $rv") // TODO ???
+          case _ => ()
+            // TODO if solved by functor equivalence above, skip this
+            // TODO check ∀â ∈ dom(alg) . [alg]ri ≠ â
+        SCConjunction(w1, SCProposition(IPEqual(li, ri)))
+      // <:⁺/⊣↓
+      case (PSuspended(l), PSuspended(r)) =>
+        val (re, (_, rp)) = r.extract
+        rp.foldRight(SCNSubtype(l, re))(SCPrecondition.apply)
+      case _ => throw TypeException(s"positive types are not subtypes: $left </: $right")
+  }
 }
 
 object PUnit extends PTypeBase[PUnit.type] {
@@ -100,6 +153,13 @@ object PUnit extends PTypeBase[PUnit.type] {
 }
 case class PProd(left: PType, right: PType) extends PTypeBase[PProd] {
   override def toString: String = s"($left × $right)"
+
+  // ⇝⁺×
+  override def extract: (PType, LogicCtx) = {
+    val (le, (lv, lp)) = left.extract
+    val (re, (rv, rp)) = right.extract
+    (PProd(le, re), (lv ++ rv, lp ++ rp))
+  }
 
   // AlgTp×
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx =
@@ -172,6 +232,12 @@ case class PExists(variable: IndexVariable, tp: PType) extends PTypeBase[PExists
       case _ => false
     }
 
+  // ⇝⁺∃
+  override def extract: (PType, LogicCtx) = {
+    val (tpe, (v, p)) = tp.extract
+    (tpe, (v + variable, p))
+  }
+
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = {
     val body = tp.wellFormed(ctx + variable)
     if !body.contains(variable) then
@@ -184,6 +250,12 @@ case class PExists(variable: IndexVariable, tp: PType) extends PTypeBase[PExists
 }
 case class PProperty(tp: PType, proposition: Proposition) extends PTypeBase[PProperty] {
   override def toString: String = s"($tp ∧ [$proposition])"
+
+  // ⇝⁺∧
+  override def extract: (PType, LogicCtx) = {
+    val (tpe, (v, p)) = tp.extract
+    (tpe, (v, proposition +: p))
+  }
 
   // AlgTp∧
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx =

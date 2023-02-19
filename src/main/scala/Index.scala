@@ -8,6 +8,14 @@ type IndexVariableCtx = Set[IndexVariable]
 type PropositionCtx = List[Proposition]
 type LogicCtx = (IndexVariableCtx, PropositionCtx)
 
+trait Extracts[T <: Extracts[T]] {
+  /**
+   * Extract variables and propositions from type, i.e. this ⇝ (T, Θ) (fig. 29/61).
+   * @return extracted type and logic context, i.e. (T, Θ)
+   */
+  def extract: (T, LogicCtx)
+}
+
 trait WellFormed {
   /**
    * Check that under ctx, this is well-formed, returning value-determined indexes,
