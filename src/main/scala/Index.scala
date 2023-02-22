@@ -53,14 +53,26 @@ sealed trait Index extends SubstitutableIndex[Index] {
     try
       sort(_ => false); true
     catch case _: SortException => false
+
+  /**
+   * Perform algorithmic variable substitution.
+   * @return This term with all solved algorithmic variables replaced with their solution, i.e. [Δ]this.
+   */
+  def norm: Index
 }
-sealed trait IndexBase[T <: IndexBase[T]] extends Index, SubstitutableIndex[T]
+sealed trait IndexBase[T <: IndexBase[T]] extends Index, SubstitutableIndex[T] {
+  override def norm: T
+}
 sealed trait Proposition extends Index, SubstitutableIndex[Proposition] {
   def checkCanSort(ctx: IndexVariable => Boolean): Unit
 
   final override def sort(ctx: IndexVariable => Boolean): SBool.type = { checkCanSort(ctx); SBool }
+
+  override def norm: Proposition
 }
-sealed trait PropositionBase[T <: PropositionBase[T]] extends Proposition, SubstitutableIndex[T]
+sealed trait PropositionBase[T <: PropositionBase[T]] extends Proposition, SubstitutableIndex[T] {
+  override def norm: T
+}
 
 object Index extends Parseable[Index] {
   override def parse(pc: ParseContext): Index = {
@@ -120,6 +132,14 @@ case class IVariable(variable: IndexVariable) extends Index {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): Index =
     if variable == target then replacement else this
+
+  override def norm: Index =
+    variable match
+      case algorithmic: IVAlgorithmic =>
+        algorithmic.solution match
+          case Some(value) => value.norm
+          case None => this
+      case _ => this
 }
 case class INatConstant(value: Int) extends IndexBase[INatConstant] {
   if value < 0 then throw new IllegalArgumentException(s"value may not be negative: $value")
@@ -129,6 +149,8 @@ case class INatConstant(value: Int) extends IndexBase[INatConstant] {
   override def sort(ctx: IndexVariable => Boolean): SNat.type = SNat
 
   override def substituteIndex(replacement: Index, target: IndexVariable): INatConstant = this
+
+  override def norm: INatConstant = this
 }
 case class IIntConstant(value: Int) extends IndexBase[IIntConstant] {
   override def toString: String = f"$value%+d"
@@ -137,6 +159,8 @@ case class IIntConstant(value: Int) extends IndexBase[IIntConstant] {
   override def sort(ctx: IndexVariable => Boolean): SInt.type = SInt
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IIntConstant = this
+
+  override def norm: IIntConstant = this
 }
 case class ISum(left: Index, right: Index) extends IndexBase[ISum] {
   override def toString: String = s"($left + $right)"
@@ -154,6 +178,8 @@ case class ISum(left: Index, right: Index) extends IndexBase[ISum] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): ISum =
     ISum((replacement / target)(left), (replacement / target)(right))
+
+  override def norm: ISum = ISum(left.norm, right.norm)
 }
 case class IDifference(left: Index, right: Index) extends IndexBase[IDifference] {
   override def toString: String = s"($left - $right)"
@@ -171,6 +197,8 @@ case class IDifference(left: Index, right: Index) extends IndexBase[IDifference]
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IDifference =
     IDifference((replacement / target)(left), (replacement / target)(right))
+
+  override def norm: IDifference = IDifference(left.norm, right.norm)
 }
 case class IPair(left: Index, right: Index) extends IndexBase[IPair] {
   override def toString: String = s"($left, $right)"
@@ -181,6 +209,8 @@ case class IPair(left: Index, right: Index) extends IndexBase[IPair] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IPair =
     IPair((replacement / target)(left), (replacement / target)(right))
+
+  override def norm: IPair = IPair(left.norm, right.norm)
 }
 case class ILeft(value: Index) extends IndexBase[ILeft] {
   override def toString: String = s"π₁ $value"
@@ -194,6 +224,8 @@ case class ILeft(value: Index) extends IndexBase[ILeft] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): ILeft =
     ILeft((replacement / target)(value))
+
+  override def norm: ILeft = ILeft(value.norm)
 }
 case class IRight(value: Index) extends IndexBase[IRight] {
   override def toString: String = s"π₂ $value"
@@ -207,6 +239,8 @@ case class IRight(value: Index) extends IndexBase[IRight] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IRight =
     IRight((replacement / target)(value))
+
+  override def norm: IRight = IRight(value.norm)
 }
 case class IPEqual(left: Index, right: Index) extends PropositionBase[IPEqual] {
   override def toString: String = s"($left = $right)"
@@ -221,6 +255,8 @@ case class IPEqual(left: Index, right: Index) extends PropositionBase[IPEqual] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IPEqual =
     IPEqual((replacement / target)(left), (replacement / target)(right))
+
+  override def norm: IPEqual = IPEqual(left.norm, right.norm)
 }
 case class IPLessEqual(left: Index, right: Index) extends PropositionBase[IPLessEqual] {
   override def toString: String = s"($left ≤ $right)"
@@ -238,6 +274,8 @@ case class IPLessEqual(left: Index, right: Index) extends PropositionBase[IPLess
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IPLessEqual =
     IPLessEqual((replacement / target)(left), (replacement / target)(right))
+
+  override def norm: IPLessEqual = IPLessEqual(left.norm, right.norm)
 }
 case class IPAnd(left: Proposition, right: Proposition) extends PropositionBase[IPAnd] {
   override def toString: String = s"($left ∧ $right)"
@@ -250,6 +288,8 @@ case class IPAnd(left: Proposition, right: Proposition) extends PropositionBase[
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IPAnd =
     IPAnd((replacement / target)(left), (replacement / target)(right))
+
+  override def norm: IPAnd = IPAnd(left.norm, right.norm)
 }
 case class IPOr(left: Proposition, right: Proposition) extends PropositionBase[IPOr] {
   override def toString: String = s"($left ∨ $right)"
@@ -262,6 +302,8 @@ case class IPOr(left: Proposition, right: Proposition) extends PropositionBase[I
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IPOr =
     IPOr((replacement / target)(left), (replacement / target)(right))
+
+  override def norm: IPOr = IPOr(left.norm, right.norm)
 }
 case class IPNot(prop: Proposition) extends PropositionBase[IPNot] {
   override def toString: String = s"¬$prop"
@@ -271,6 +313,8 @@ case class IPNot(prop: Proposition) extends PropositionBase[IPNot] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IPNot =
     IPNot((replacement / target)(prop))
+
+  override def norm: IPNot = IPNot(prop.norm)
 }
 object IPTrue extends PropositionBase[IPTrue.type] {
   override def toString: String = "T"
@@ -279,6 +323,8 @@ object IPTrue extends PropositionBase[IPTrue.type] {
   override def checkCanSort(ctx: IndexVariable => Boolean): Unit = ()
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IPTrue.type = this
+
+  override def norm: IPTrue.type = this
 }
 object IPFalse extends PropositionBase[IPFalse.type] {
   override def toString: String = "F"
@@ -287,4 +333,6 @@ object IPFalse extends PropositionBase[IPFalse.type] {
   override def checkCanSort(ctx: IndexVariable => Boolean): Unit = ()
 
   override def substituteIndex(replacement: Index, target: IndexVariable): IPFalse.type = this
+
+  override def norm: IPFalse.type = this
 }

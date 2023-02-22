@@ -60,11 +60,12 @@ object PType extends Parseable[PType], TypeEquality[PType], TypeSubtype[PType] {
         val w1 = PType.equivalent(lt, rt)(ctx)
         (lp, rp) match {
           // PropEquivInst
+          // TODO this rule appears to contain several typos,
+          //  waiting for confirmation of the corrected rule 
           case (IPEqual(la, _), IPEqual(IVariable(rav: IVAlgorithmic), _)) if rav.solution.isEmpty =>
             val ls = la.sort(ctx)
             if ls == rav.sort then
               rav.solution = Some(la)
-            // TODO else ???
           case _ => ()
         }
         SCConjunction(w1, SCEquivalent(lp, rp))
@@ -83,8 +84,6 @@ object PType extends Parseable[PType], TypeEquality[PType], TypeSubtype[PType] {
             else
               throw TypeException(s"failed to determine algorithmic variable $rv") // TODO ???
           case _ => ()
-            // TODO if solved by functor equivalence above, skip this
-            // TODO check ∀â ∈ dom(alg) . [alg]ri ≠ â
         SCConjunction(w1, SCProposition(IPEqual(li, ri)))
       // Tp≡⁺/⊣↓
       case (PSuspended(l), PSuspended(r)) => SCNEquivalent(l, r)
@@ -108,10 +107,13 @@ object PType extends Parseable[PType], TypeEquality[PType], TypeSubtype[PType] {
         rp match {
           // Inst
           case IPEqual(IVariable(rav: IVAlgorithmic), rv) if rav.solution.isEmpty =>
-            val ls = rv.sort(ctx)
-            if ls == rav.sort then
-              rav.solution = Some(rv)
-            // TODO else ???
+            val rvn = rv.norm
+            try
+              val ls = rvn.sort(iv => !iv.isInstanceOf[IVAlgorithmic])  // TODO ctx.filter(...)
+              if ls == rav.sort then
+                rav.solution = Some(rvn)
+            catch
+              case _: SortException => ()
           case _ => ()
         }
         SCConjunction(w1, SCProposition(rp))
@@ -132,8 +134,6 @@ object PType extends Parseable[PType], TypeEquality[PType], TypeSubtype[PType] {
             else
               throw TypeException(s"failed to determine algorithmic variable $rv") // TODO ???
           case _ => ()
-            // TODO if solved by functor equivalence above, skip this
-            // TODO check ∀â ∈ dom(alg) . [alg]ri ≠ â
         SCConjunction(w1, SCProposition(IPEqual(li, ri)))
       // <:⁺/⊣↓
       case (PSuspended(l), PSuspended(r)) =>
