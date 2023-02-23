@@ -102,7 +102,7 @@ class ParserTest extends AnyFreeSpec {
   raise(FunctorProduct, "(I ⊕ I)", "not a product functor")
   raise(FunctorBase, "(I ⊕ I)", "not a base functor")
 
-  roundtrip[APConstant](AlgebraBasePattern, "_")
+  roundtrip[APConstant.type](AlgebraBasePattern, "_")
   roundtrip[APIdentity](AlgebraBasePattern, "foo")
   roundtrip[APPack](AlgebraBasePattern, "pack(foo, _)")
   roundtrip[APPack](AlgebraBasePattern, "pack(foo, bar)")
@@ -110,7 +110,7 @@ class ParserTest extends AnyFreeSpec {
   roundtrip[APPack](AlgebraBasePattern, "pack(foo, pack(bar, baz))")
   raise(AlgebraBasePattern, "()", "unexpected '(' (expecting a base algebra pattern)")
 
-  roundtrip[APUnit](AlgebraProductPattern, "()")
+  roundtrip[APUnit.type](AlgebraProductPattern, "()")
   roundtrip[APProduct](AlgebraProductPattern, "(pack(foo, bar), ())")
   roundtrip[APProduct](AlgebraProductPattern, "(pack(foo, bar), (baz, ()))")
   raise(AlgebraProductPattern, "inl ()", "unexpected 'inl' (expecting a product algebra pattern)")

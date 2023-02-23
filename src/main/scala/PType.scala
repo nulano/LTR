@@ -61,7 +61,7 @@ object PType extends Parseable[PType], TypeEquality[PType], TypeSubtype[PType] {
         (lp, rp) match {
           // PropEquivInst
           // TODO this rule appears to contain several typos,
-          //  waiting for confirmation of the corrected rule 
+          //  waiting for confirmation of the corrected rule
           case (IPEqual(la, _), IPEqual(IVariable(rav: IVAlgorithmic), _)) if rav.solution.isEmpty =>
             val ls = la.sort(ctx)
             if ls == rav.sort then
@@ -200,7 +200,41 @@ case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) exten
   // TODO actual string is s"{v : μ$functor | (fold_$functor $algebra) v =_τ $idx}"
   override def toString: String = s"μ$functor ⊃ $algebra ⇒ $index"
 
-  def unroll: PType = functor.unroll(this)
+  /**
+   * Unroll this type, i.e. `Ξ; Θ; Δ ⊢ unroll(functor; algebra; τ; index) ≗ P` (fig. 63/64)
+   * @return the unrolled type, i.e. P
+   */
+  def unroll: PType = unroll(functor, algebra)
+
+  /**
+   * Unroll this type, i.e. `Ξ; Θ; Δ ⊢ unroll_{functor;algebra}(f; a; τ; index) ≗ P` (fig. 63/64)
+   * @param f the functor
+   * @param a the algebra
+   * @return the unrolled type, i.e. P
+   */
+  private def unroll(f: FunctorSum, a: Algebra): PType = {
+    (f, a) match
+      // AlgUnroll⊕
+      case (FSum(fl, fr), AlgebraSum(al, ar)) =>
+        PSum(unroll(fl, al), unroll(fr, ar))
+      // AlgUnrollId
+      case (FProduct(FIdentity, fr), AlgebraProd(APProduct(APIdentity(v), apr), ai)) =>
+        val v2 = IVariable(new IVBound(v.name, index.sort))
+        val left = PExists(v2.variable, PInductive(functor, algebra, v2))
+        val right = unroll(fr, AlgebraProd(apr, (v2 / v)(ai)))
+        PProd(left, right)
+      // AlgUnroll∃
+      case (FProduct(FConstant(PExists(fv, ft)), fr), AlgebraProd(APProduct(APPack(av, ar), apr), ai)) =>
+        val v2 = IVariable(new IVBound(fv.name, fv.sort))
+        PExists(v2.variable, unroll(FProduct(FConstant(ft), fr), AlgebraProd(APProduct(ar, apr), (v2 / av)(ai))))
+      // AlgUnrollConst
+      case (FProduct(FConstant(ft), fr), AlgebraProd(APProduct(APConstant, apr), ai)) =>
+        PProd(ft, unroll(fr, AlgebraProd(apr, ai)))
+      // AlgUnrollI
+      case (FUnit, AlgebraProd(APUnit, ai)) =>
+        PProperty(PUnit, IPEqual(index, ai))
+      case _ => throw TypeException(s"functor does not match algebra: $f, $a")
+  }
 
   // AlgTpμ{...}
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = {
@@ -213,7 +247,6 @@ case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) exten
     }
   }
 
-  // TODO consider algebra?
   override def substituteIndex(replacement: Index, target: IndexVariable): PInductive =
     PInductive(functor, algebra, (replacement / target)(index))
 }

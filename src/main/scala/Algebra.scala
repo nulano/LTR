@@ -83,7 +83,7 @@ object Algebra extends Parseable[Algebra] {
                  sort: Sort): Unit =
     (pattern, functor) match {
       // AlgAlgI
-      case (_: APUnit, _: FUnit.type) =>
+      case (APUnit, FUnit) =>
         val result = index.sort(valueDetermined)
         if result != sort then
           throw TypeException(s"algebra result is incompatible with requirement: $result != $sort")
@@ -94,7 +94,7 @@ object Algebra extends Parseable[Algebra] {
             val v = id.variable.withSort(sort)
             wellFormed(valueDetermined + v, ctx + v, alg.right, (IVariable(v) / id.variable)(index), fun.right, sort)
           // AlgAlgConst⊗
-          case (_: APConstant, const: FConstant) =>
+          case (APConstant, const: FConstant) =>
             const.tp.wellFormed(ctx)
             wellFormed(valueDetermined, ctx, alg.right, index, fun.right, sort)
           // AlgAlgConst∃⊗
@@ -153,7 +153,7 @@ object AlgebraSumPattern extends Parseable[AlgebraSumPattern] {
       case Tk.LParen =>
         if pc.peek().tk == Tk.RParen then {
           pc.pop(Tk.RParen)
-          APUnit()
+          APUnit
         } else {
           val left = AlgebraBasePattern.parse(pc)
           pc.pop(Tk.Comma)
@@ -179,7 +179,7 @@ object AlgebraBasePattern extends Parseable[AlgebraBasePattern] {
   override def parse(pc: ParseContext): AlgebraBasePattern = {
     val tok = pc.pop()
     tok.tk match {
-      case Tk.Underscore => APConstant()
+      case Tk.Underscore => APConstant
       case Tk.Var => APIdentity(new IVPlaceholder(tok.text))
       case Tk.Pack =>
         pc.pop(Tk.LParen)
@@ -211,7 +211,7 @@ case class APRight(pattern: AlgebraSumPattern) extends AlgebraSumPattern {
 //  override def substituteIndex(replacement: Index, target: IndexVariable): APRight =
 //    APRight((replacement / target)(pattern))
 }
-case class APUnit() extends AlgebraProductPattern {
+object APUnit extends AlgebraProductPattern {
   override def toString: String = s"()"
 
   override def extendParseContext(pc: ParseContext): ParseContext = pc
@@ -227,7 +227,7 @@ case class APProduct(left: AlgebraBasePattern, right: AlgebraProductPattern) ext
 //  override def substituteIndex(replacement: Index, target: IndexVariable): APProduct =
 //    APProduct((replacement / target)(left), (replacement / target)(right))
 }
-case class APConstant() extends AlgebraBasePattern {
+object APConstant extends AlgebraBasePattern {
   override def toString: String = "_"
 
   override def extendParseContext(pc: ParseContext): ParseContext = pc
