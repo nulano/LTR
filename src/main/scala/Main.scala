@@ -33,19 +33,19 @@ object Main {
         |let test = (return <<>, inl { return { fun x . return < > } }> : ^(1 × (V ^ V (1 ~ ^ 1 ) + 0)  ))
         |
         |type unit = 1
-        |alg ixnat = (() => 0 || (a, ()) => (1 + a))
-        |type nat(b) = fix (I (+) (Id (X) I)) S ixnat => b
+        |alg ixnat = (inl () => 0 || inr (a, ()) => (1 + a))
+        |type nat(b:N) = fix (I (+) (Id (X) I)) S ixnat => b
         |let unit = (return <> : ^unit)
         |let zero = (return into(inl unit) : ^nat(0))
         |
-        |def succ : -- ∀b : ℕ .
+        |def succ : ∀b : ℕ .
         |           (nat(b) → ↑nat((1 + b)))
         |         = λx . return into(inj₂ <x, <>>)
         |let one = succ(zero)
         |let two = succ(one)
         |
-        |def pred : -- ∀b : ℕ .
-        |           (nat((1 + b)) → ↑nat(b))
+        |def pred : ∀b : ℕ .
+        |           (nat(b) → ↑nat((b - 1)))
         |         = λx . match x {
         |                  into(y) ⇒ match y {
         |                    inj₁ u ⇒ return x
@@ -58,7 +58,7 @@ object Main {
         |""".stripMargin
 
     val repl = new REPL()
-    val reader = /*input.split('\n').iterator ++*/ StdInReader
+    val reader = input.split('\n').iterator ++ StdInReader
     val parser = new Parser("<stdin>", reader)
     while parser.peek().tk != Tk.EOF do {
       try

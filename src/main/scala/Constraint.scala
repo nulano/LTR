@@ -35,8 +35,11 @@ sealed trait TypingConstraint {
 
 }
 
+case class TCExpression(expr: Expression, tp: NType) extends TypingConstraint {
+  override def toString: String = s"($expr ⇐ $tp)"
+}
 
-sealed trait SubtypingConstraint {
+sealed trait SubtypingConstraint extends TypingConstraint {
 
 }
 

@@ -1,90 +1,95 @@
+import scala.annotation.tailrec
 
-sealed trait Expression {
-  def checkType(vc: VariableContext, tp: NType): Unit
-}
+sealed trait Expression
 
 object Expression extends Parseable[Expression] {
   override def parse(pc: ParseContext): Expression = {
     val tok = pc.pop()
     tok.tk match {
       case Tk.Return => ExpReturn(Value.parse(pc))(tok)
-      case Tk.Let => {
+      case Tk.Let =>
         val variable = pc.pop(Tk.Var).text
         pc.pop(Tk.Eq)
         val bound = BoundExpression.parse(pc)
         pc.pop(Tk.Semicolon)
         val body = Expression.parse(pc)
         ExpLet(variable, bound, body)(tok)
-      }
-      case Tk.Match => {
+      case Tk.Match =>
         val head = Head.parse(pc)
         val clauses = MatchPattern.parse(pc)
         ExpMatch(head, clauses)(tok)
-      }
-      case Tk.Lambda => {
+      case Tk.Lambda =>
         val variable = pc.pop(Tk.Var).text
         pc.pop(Tk.Dot)
         val body = Expression.parse(pc)
         ExpFunction(variable, body)(tok)
-      }
-      case Tk.Rec => {
+      case Tk.Rec =>
         val variable = pc.pop(Tk.Var).text
         pc.pop(Tk.Colon)
         val tp = NType.parse(pc)
         pc.pop(Tk.Dot)
         val body = Expression.parse(pc)
         ExpRecursive(variable, tp, body)(tok)
-      }
       case _ => throw UnexpectedTokenParseException(tok, "an expression")
     }
+  }
+
+  /**
+   * Check expression matches tp, i.e. `Θ; Γ ▷ expression ⇐ tp'` (fig. 66b)
+   * @param expression the expression to check
+   * @param tp the type to check
+   * @param ctx the index variable context, i.e. Θ
+   * @param vars the variable context, i.e. Γ
+   */
+  @tailrec
+  def checkType(expression: Expression, tp: NType)(ctx: IndexVariableCtx, vars: VariableContext): Unit = {
+    // TODO provide proposition context
+    val (te, (ve, pe)) = tp.extract
+    val ctx2 = ctx ++ ve
+    (expression, te) match
+      // Alg⇐↑
+      case (ExpReturn(v), NComputation(t)) =>
+        val out = Value.checkType(v, t)(ctx2, vars)
+        // TODO check out
+      // Alg⇐let
+      case (ExpLet(v, be, bd), _) =>
+        val (vte, (vve, vpe)) = be.getType(vars).result.extract
+        checkType(bd, te)(ctx2 ++ vve, vars + ((v, vte)))  // TODO vpe
+      // TODO Alg⇐match
+
+      // Alg⇐λ
+      case (ExpFunction(av, be), NFunction(at, bt)) =>
+        checkType(be, bt)(ctx2, vars + ((av, at)))
+      // Alg⇐rec
+      case (ExpRecursive(rv, NForAll(rtv, rtt), rb), _) if rtv.sort == SNat =>
+        val ro = NType.subtype(NForAll(rtv, rtt), te)(ctx2)
+        // TODO check ro
+        val temp = IVariable(new IVBound(rtv.name, SNat))
+        val cond = IPAnd(IPLessEqual(temp, IVariable(rtv)), IPNot(IPEqual(temp, IVariable(rtv))))  // TODO extend syntax?
+        val rct = NForAll(temp.variable, NPrecondition(cond, (temp / rtv)(rtt)))
+        checkType(rb, rtt)(ctx2 + rtv, vars + ((rv, PSuspended(rct))))
+      case _ => throw TypeException(s"expression does not match type: $expression ⇐ $tp")
   }
 }
 
 case class ExpReturn(value: Value)(val token: Token) extends Expression {
   override def toString: String = s"return $value"
-
-  // Unref <= ^
-  override def checkType(vc: VariableContext, tp: NType): Unit = tp match {
-    case NComputation(result) => value.checkType(vc, result)
-    case _ => throw TypeException(s"$this does not have type $tp")
-  }
 }
 case class ExpLet(variable: String, value: BoundExpression, body: Expression)(val token: Token) extends Expression {
   override def toString: String = s"let $variable = $value; $body"
-
-  // Unref <= let
-  override def checkType(vc: VariableContext, tp: NType): Unit =
-    body.checkType(vc.add(variable, value.getType(vc).result), tp)
 }
 case class ExpMatch(head: Head, clauses: MatchPattern)(val token: Token) extends Expression {
   override def toString: String = s"match $head $clauses"
-
-  // Unref <= match
-  override def checkType(vc: VariableContext, tp: NType): Unit =
-    clauses.checkType(vc, head.getType(vc), tp)
 }
 case class ExpFunction(variable: String, body: Expression)(val token: Token) extends Expression {
   override def toString: String = s"λ$variable . $body"
-
-  // Unref <= λ
-  override def checkType(vc: VariableContext, tp: NType): Unit = tp match {
-    case NFunction(a, r) => body.checkType(vc.add(variable, a), r)
-    case _ => throw TypeException(s"$this does not have type $tp")
-  }
 }
 case class ExpRecursive(variable: String, tp: NType, body: Expression)(val token: Token) extends Expression {
   override def toString: String = s"rec $variable : $tp . $body"
-
-  // Unref <= rec
-  override def checkType(vc: VariableContext, tp: NType): Unit =
-    body.checkType(vc.add(variable, PSuspended(tp)), tp)
-  // TODO ^^ does not use the type declaration used for the variable (related to type erasure)
 }
 
 // TODO maybe rename? encapsulates all clauses of a match block
-sealed trait MatchPattern {
-  def checkType(vc: VariableContext, head: PType, tp: NType): Unit
-}
+sealed trait MatchPattern
 
 object MatchPattern extends Parseable[MatchPattern] {
   override def parse(pc: ParseContext): MatchPattern = {
@@ -146,53 +151,68 @@ object MatchPattern extends Parseable[MatchPattern] {
       case _ => throw UnexpectedTokenParseException(tok2, "a match pattern")
     }
   }
+  
+  /**
+   * Check match pattern matches arg with output tp, i.e. `Θ; Γ [arg] ▷ pattern ⇐ tp'` (fig. 67a)
+   *
+   * @param pattern the pattern to check
+   * @param arg the argument to check
+   * @param tp the type to check
+   * @param ctx the index variable context, i.e. Θ
+   * @param vars the variable context, i.e. Γ
+   */
+  @tailrec
+  def checkType(pattern: MatchPattern, arg: PType, tp: NType)(ctx: IndexVariableCtx, vars: VariableContext): Unit = {
+    (pattern, arg) match {
+      // AlgMatch∃
+      case (_, pe: PExists) =>
+        checkType(pattern, pe.tp, tp)(ctx + pe.variable, vars)
+      // AlgMatch∧
+      case (_, pp: PProperty) =>
+        // TODO pp.proposition
+        checkType(pattern, pp.tp, tp)(ctx, vars)
+      // AlgMatch1
+      case (mpu: MPUnit, PUnit) =>
+        Expression.checkType(mpu.body, tp)(ctx, vars)
+      // AlgMatch×
+      case (mpp: MPProd, pp: PProd) =>
+        val (ae, (av, ap)) = pp.left.extract
+        val (be, (bv, bp)) = pp.right.extract
+        // TODO ap + bp
+        Expression.checkType(mpp.body, tp)(ctx ++ av ++ bv, vars + ((mpp.left, ae)) + ((mpp.right, be)))
+      // AlgMatch+
+      case (mps: MPSum, ps: PSum) =>
+        val (ae, (av, ap)) = ps.left.extract
+        val (be, (bv, bp)) = ps.right.extract
+        // TODO ap, bp
+        Expression.checkType(mps.leftBody, tp)(ctx ++ av, vars + ((mps.left, ae)))
+        Expression.checkType(mps.rightBody, tp)(ctx ++ bv, vars + ((mps.right, be)))
+      // AlgMatch0
+      case (_: MPVoid, PVoid) => ()
+      // AlgMatchμ
+      case (mpi: MPInto, pi: PInductive) =>
+        val (ae, (av, ap)) = pi.unroll.extract
+        // TODO ap
+        Expression.checkType(mpi.body, tp)(ctx ++ av, vars + ((mpi.variable, ae)))
+    }
+  }
 }
 
 case class MPVoid()(val token: Token) extends MatchPattern {
   override def toString: String = "{}"
-
-  // UnrefMatch0
-  override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
-    case PVoid => ()
-    case _ => throw TypeException(s"$this pattern does not match $head")
-  }
 }
 
 case class MPInto(variable: String, body: Expression)(val token: Token) extends MatchPattern {
   override def toString: String = s"{into($variable) ⇒ $body}"
-
-  // Unref MatchInto
-  override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
-    case ind: PInductive => body.checkType(vc.add(variable, ind.unroll), tp)
-    case _ => throw TypeException(s"$this pattern does not match $head")
-  }
 }
 case class MPUnit(body: Expression)(val token: Token) extends MatchPattern {
   override def toString: String = s"{<> ⇒ $body}"
-
-  // UnrefMatch1
-  override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
-    case PUnit => body.checkType(vc, tp)
-    case _ => throw TypeException(s"$this pattern does not match $head")
-  }
 }
 case class MPProd(left: String, right: String, body: Expression)(val token: Token) extends MatchPattern {
   override def toString: String = s"{<$left, $right> ⇒ $body}"
-
-  // UnrefMatch×
-  override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
-    case PProd(l, r) => body.checkType(vc.add(left, l).add(right, r), tp)
-    case _ => throw TypeException(s"$this pattern does not match $head")
-  }
 }
 case class MPSum(left: String, leftBody: Expression, right: String, rightBody: Expression)(val token: Token) extends MatchPattern {
   override def toString: String = s"{inl $left ⇒ $leftBody ‖ inr $right ⇒ $rightBody}"
-
-  // UnrefMatch+
-  override def checkType(vc: VariableContext, head: PType, tp: NType): Unit = head match {
-    case PSum(l, r) => { leftBody.checkType(vc.add(left, l), tp); rightBody.checkType(vc.add(right, r), tp) }
-    case _ => throw TypeException(s"$this pattern does not match $head")
-  }
 }
 
 

@@ -1,6 +1,6 @@
 
 class REPL {
-  var vars = new VariableContext(List())
+  var vars: Map[String, PType] = Map()
   // TODO var logicContext = ...
   var typeVars: Map[String, TypeVar] = Map()
   var algebras: Map[String, Algebra] = Map()
@@ -14,7 +14,7 @@ class REPL {
       case command: REPLLetCommand =>
         val (variable, boundExpression) = command.assignment
         val tp = boundExpression.getType(vars).result
-        this.vars = this.vars.add(variable, tp)
+        this.vars = this.vars + ((variable, tp))  // TODO extract?
         s"let $variable : $tp"
       case REPLAlgebra(variable, alg) =>
         this.algebras = this.algebras + ((variable, alg))
