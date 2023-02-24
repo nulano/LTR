@@ -1,7 +1,19 @@
 import scala.annotation.{tailrec, targetName}
 
 trait SubstitutableIndex[+T] {
+  /**
+   * Substitute replacement for target in this.
+   * @param replacement the substituted index term
+   * @param target the index variable to be substituted
+   * @return the result, i.e. [replacement / target]this
+   */
   def substituteIndex(replacement: Index, target: IndexVariable): T
+
+  /**
+   * Perform algorithmic variable substitution.
+   * @return This term with all solved algorithmic variables replaced with their solution, i.e. [Δ]this.
+   */
+  def norm: T
 }
 
 type IndexVariableCtx = Set[IndexVariable]
@@ -53,26 +65,14 @@ sealed trait Index extends SubstitutableIndex[Index] {
     try
       sort(_ => false); true
     catch case _: SortException => false
-
-  /**
-   * Perform algorithmic variable substitution.
-   * @return This term with all solved algorithmic variables replaced with their solution, i.e. [Δ]this.
-   */
-  def norm: Index
 }
-sealed trait IndexBase[T <: IndexBase[T]] extends Index, SubstitutableIndex[T] {
-  override def norm: T
-}
+sealed trait IndexBase[T <: IndexBase[T]] extends Index, SubstitutableIndex[T]
 sealed trait Proposition extends Index, SubstitutableIndex[Proposition] {
   def checkCanSort(ctx: IndexVariable => Boolean): Unit
 
   final override def sort(ctx: IndexVariable => Boolean): SBool.type = { checkCanSort(ctx); SBool }
-
-  override def norm: Proposition
 }
-sealed trait PropositionBase[T <: PropositionBase[T]] extends Proposition, SubstitutableIndex[T] {
-  override def norm: T
-}
+sealed trait PropositionBase[T <: PropositionBase[T]] extends Proposition, SubstitutableIndex[T]
 
 object Index extends Parseable[Index] {
   override def parse(pc: ParseContext): Index = {

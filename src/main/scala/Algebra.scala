@@ -16,6 +16,8 @@ case class AlgebraSum(left: Algebra, right: Algebra) extends Algebra, Substituta
 
   override def substituteIndex(replacement: Index, target: IndexVariable): AlgebraSum =
     AlgebraSum((replacement / target)(left), (replacement / target)(right))
+
+  override def norm: AlgebraSum = AlgebraSum(left.norm, right.norm)
 }
 
 case class AlgebraProd(pattern: AlgebraProductPattern, index: Index) extends Algebra, SubstitutableIndex[AlgebraProd] {
@@ -23,6 +25,8 @@ case class AlgebraProd(pattern: AlgebraProductPattern, index: Index) extends Alg
 
   override def substituteIndex(replacement: Index, target: IndexVariable): AlgebraProd =
     AlgebraProd(pattern, (replacement / target)(index))
+
+  override def norm: AlgebraProd = AlgebraProd(pattern, index.norm)
 }
 
 object Algebra extends Parseable[Algebra] {

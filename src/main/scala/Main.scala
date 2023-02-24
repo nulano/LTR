@@ -55,6 +55,24 @@ object Main {
         |                  }
         |                }
         |let oneagain = pred(two)
+        |
+        |def addtwo : ∀b : ℕ .
+        |             (nat(b) → ↑nat((2 + b)))
+        |           = λx . let y = succ(x); let z = succ(y); return z
+        |let twoagain = addtwo(zero)
+        |
+        |rec sum : ∀b : ℕ . ∀c : ℕ .
+        |          (nat(b) → (nat(c) → ↑nat((b + c))))
+        |        = λx . λy . match x {
+        |            into(xx) ⇒ match xx {
+        |              inj₁ u ⇒ return y
+        |            ‖ inj₂ xminusone ⇒
+        |                let recv = sum(xminusone, y);
+        |                let out = succ(recv);
+        |                return out
+        |            }
+        |          }
+        |let four = sum(two, twoagain)
         |""".stripMargin
 
     val repl = new REPL()

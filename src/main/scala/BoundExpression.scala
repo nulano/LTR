@@ -1,3 +1,4 @@
+import scala.collection.mutable.ListBuffer
 
 sealed trait Head {
   /**
@@ -66,7 +67,7 @@ object BoundExpression extends Parseable[BoundExpression] {
     } else {
       val head = Head.parse(pc)  // TODO custom exception?
       pc.pop(Tk.LParen)
-      val spine = new collection.immutable.VectorBuilder[Value]()
+      val spine = ListBuffer[Value]()
       if pc.peek().tk == Tk.RParen then {
         pc.pop(Tk.RParen)
       } else {
@@ -79,29 +80,43 @@ object BoundExpression extends Parseable[BoundExpression] {
   }
 }
 
-case class BEApplication(head: Head, spine: Vector[Value])(val token: Token) extends BoundExpression {
+case class BEApplication(head: Head, spine: List[Value])(val token: Token) extends BoundExpression {
   override def toString: String = s"$head(${spine.mkString(",")})"
 
   // Alg⇒App
   override def getType(vc: VariableContext): NComputation = {
-    val headType = head.getType(vc)
-    NComputation(headType) // TODO
-//    headType match {
-//      case PSuspended(tp) => {
-//        // need to check: Γ; [$tp] ⊢ $spine ≫ ↑P
-//        // UnrefSpineApp
-//        val res = spine.foldLeft(tp)((t: NType, v: Value) => t match {
-//          case NFunction(arg, body) => { /* TODO v.checkType(vc, arg); */ body }
-//          case _ => throw TypeException(s"too many arguments")
-//        })
-//        // UnrefSpineNil
-//        res match {
-//          case comp: NComputation => comp
-//          case _ => throw TypeException(s"too few arguments")
-//        }
-//      }
-//      case _ => throw TypeException(s"type '$headType' is not a suspended computation")
-//    }
+    val ctx: IndexVariableCtx = Set() // TODO ???
+    head.getType(vc) match
+      case PSuspended(headType) =>
+        val (res, const) = BEApplication.applySpine(headType, spine)(ctx, vc)
+        // TODO check const
+        NComputation(res)
+      case headType => throw TypeException(s"type '$headType' is not a suspended computation")
+  }
+}
+object BEApplication {
+  private def applySpine(head: NType, spine: List[Value])(ctx: IndexVariableCtx, vars: VariableContext): (PType, List[TypingConstraint]) = {
+    (head, spine) match
+      // AlgSpine∀
+      case (nfa: NForAll, _) =>
+        val temp = new IVAlgorithmic(nfa.variable)
+        val (res, const) = applySpine((IVariable(temp) / nfa.variable)(nfa.tp), spine)(ctx + temp, vars)
+        if temp.solution.isEmpty then
+          throw TypeException(s"failed to determine algorithmic variable $temp")
+        (res, const)
+      // AlgSpine⊃
+      case (np: NPrecondition, _) =>
+        val (ot, oc) = applySpine(np.tp, spine)(ctx, vars)
+        (ot, SCProposition(np.proposition) :: oc)
+      // AlgSpineApp
+      case (nf: NFunction, v :: s) =>
+        val a = Value.checkType(v, nf.arg)(ctx, vars)
+        val (t, b) = applySpine(nf.body.norm, s)(ctx, vars)  // TODO nf.body.norm here is needed for Tp≡⁺/⊣μ and <:⁺/⊣μ, test well!!!
+        (t, a ++ b)
+      // AlgSpineNil
+      case (nc: NComputation, Nil) =>
+        (nc.result, Nil)
+      case _ => throw TypeException(s"head type does not match spine: $head(${spine.mkString(", ")})")
   }
 }
 case class BEExpression(exp: Expression, tp: PType)(val token: Token) extends BoundExpression {

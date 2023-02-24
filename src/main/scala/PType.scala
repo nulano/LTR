@@ -129,6 +129,7 @@ object PType extends Parseable[PType], TypeEquality[PType], TypeSubtype[PType] {
         val w1 = Functor.equivalent(lf, rf)(ctx)
         ri match
           case IVariable(rv: IVAlgorithmic) if rv.solution.isEmpty =>
+            // TODO li = li.norm?
             if li.isGround then
               rv.solution = Option(li)
             else
@@ -150,6 +151,8 @@ object PUnit extends PTypeBase[PUnit.type] {
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = Set.empty
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PUnit.type = this
+
+  override def norm: PUnit.type = this
 }
 case class PProd(left: PType, right: PType) extends PTypeBase[PProd] {
   override def toString: String = s"($left × $right)"
@@ -167,6 +170,8 @@ case class PProd(left: PType, right: PType) extends PTypeBase[PProd] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PProd =
     PProd((replacement / target)(left), (replacement / target)(right))
+
+  override def norm: PProd = PProd(left.norm, right.norm)
 }
 object PVoid extends PTypeBase[PVoid.type] {
   override def toString: String = "0"
@@ -175,6 +180,8 @@ object PVoid extends PTypeBase[PVoid.type] {
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = Set.empty
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PVoid.type = this
+
+  override def norm: PVoid.type = this
 }
 case class PSum(left: PType, right: PType) extends PTypeBase[PSum] {
   override def toString: String = s"($left + $right)"
@@ -185,6 +192,8 @@ case class PSum(left: PType, right: PType) extends PTypeBase[PSum] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PSum =
     PSum((replacement / target)(left), (replacement / target)(right))
+
+  override def norm: PSum = PSum(left.norm, right.norm)
 }
 case class PSuspended(tp: NType) extends PTypeBase[PSuspended] {
   override def toString: String = s"↓$tp"
@@ -195,6 +204,8 @@ case class PSuspended(tp: NType) extends PTypeBase[PSuspended] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PSuspended =
     PSuspended((replacement / target)(tp))
+
+  override def norm: PSuspended = PSuspended(tp.norm)
 }
 case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) extends PTypeBase[PInductive] {
   // TODO actual string is s"{v : μ$functor | (fold_$functor $algebra) v =_τ $idx}"
@@ -249,6 +260,8 @@ case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) exten
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PInductive =
     PInductive(functor, algebra, (replacement / target)(index))
+
+  override def norm: PInductive = PInductive(functor, algebra, index.norm)
 }
 case class PExists(variable: IndexVariable, tp: PType) extends PTypeBase[PExists] {
   override def toString: String = s"∃${variable.name} : ${variable.sort} . $tp"
@@ -279,7 +292,9 @@ case class PExists(variable: IndexVariable, tp: PType) extends PTypeBase[PExists
   }
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PExists =
-    PExists(variable, tp)
+    PExists(variable, (replacement / target)(tp))
+
+  override def norm: PExists = PExists(variable, tp.norm)
 }
 case class PProperty(tp: PType, proposition: Proposition) extends PTypeBase[PProperty] {
   override def toString: String = s"($tp ∧ [$proposition])"
@@ -296,4 +311,6 @@ case class PProperty(tp: PType, proposition: Proposition) extends PTypeBase[PPro
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PProperty =
     PProperty((replacement / target)(tp), (replacement / target)(proposition))
+
+  override def norm: PProperty = PProperty(tp.norm, proposition.norm)
 }

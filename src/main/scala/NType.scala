@@ -96,6 +96,8 @@ case class NFunction(arg: PType, body: NType) extends NTypeBase[NFunction] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): NFunction =
     NFunction((replacement / target)(arg), (replacement / target)(body))
+
+  override def norm: NFunction = NFunction(arg.norm, body.norm)
 }
 case class NComputation(result: PType) extends NTypeBase[NComputation] {
   override def toString: String = s"↑$result"
@@ -106,6 +108,8 @@ case class NComputation(result: PType) extends NTypeBase[NComputation] {
 
   override def substituteIndex(replacement: Index, target: IndexVariable): NComputation =
     NComputation((replacement / target)(result))
+
+  override def norm: NComputation = NComputation(result.norm)
 }
 case class NForAll(variable: IndexVariable, tp: NType) extends NTypeBase[NForAll] {
   override def toString: String = s"∀${variable.name} : ${variable.sort} . $tp"
@@ -138,6 +142,8 @@ case class NForAll(variable: IndexVariable, tp: NType) extends NTypeBase[NForAll
 
   override def substituteIndex(replacement: Index, target: IndexVariable): NForAll =
     NForAll(variable, (replacement / target)(tp))
+
+  override def norm: NForAll = NForAll(variable, tp.norm)
 }
 case class NPrecondition(proposition: Proposition, tp: NType) extends NTypeBase[NPrecondition] {
   override def toString: String = s"[$proposition] ⊃ $tp"
@@ -155,4 +161,6 @@ case class NPrecondition(proposition: Proposition, tp: NType) extends NTypeBase[
   
   override def substituteIndex(replacement: Index, target: IndexVariable): NPrecondition =
     NPrecondition((replacement / target)(proposition), (replacement / target)(tp))
+
+  override def norm: NPrecondition = NPrecondition(proposition.norm, tp.norm)
 }
