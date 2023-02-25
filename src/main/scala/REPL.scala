@@ -103,7 +103,7 @@ case class REPLType(variable: String, tp: PType)(val token: Token) extends REPLC
   override def toString: String = s"type $variable = $tp"
 }
 case class REPLTypeInductive(variable: String, indexVariable: IndexVariable, tp: PInductive)(val token: Token) extends REPLCommand {
-  override def toString: String = s"type $variable(${indexVariable.name} : ${indexVariable.sort}) = $tp"
+  override def toString: String = s"type $variable($indexVariable) = $tp"
 }
 
 sealed trait TypeVar {

@@ -34,7 +34,7 @@ class SortIndexTest extends AnyFreeSpec {
       s"$ctxString ⊢ $string : $sort" in {
         val pc = ParseContext(Parser.forString("test", string), indexVars = indexVarMap)
         val v = Index.parse(pc)
-        assert(v.toString == string)
+        assert(v.toString.filter(c => c < '₀' | c > '₉') == string)
         val s = v.sort(indexVars)
         assert(s == sort)
         if (indexVars.nonEmpty) {
@@ -51,7 +51,7 @@ class SortIndexTest extends AnyFreeSpec {
       s"$ctxString ⊬ $string : τ, raises '$msg'" in {
         val pc = ParseContext(Parser.forString("test", string), indexVars = indexVarMap)
         val v = Index.parse(pc)
-        assert(v.toString == string)
+        assert(v.toString.filter(c => c < '₀' | c > '₉') == string)
         val ex = intercept[TypeException] { v.sort(indexVars) }
         assert(ex.msg == msg)
       }
@@ -86,10 +86,10 @@ class SortIndexTest extends AnyFreeSpec {
   Set("a : ℕ", "b : ℤ") |- "(a, b)" :: SProd(SNat, SInt)
 
   // AlgIxProj{1,2}
-  Set("p : (ℕ × ℤ)") |- "π₁ p" :: SNat
-  Set("p : (ℕ × ℤ)") |- "π₂ p" :: SInt
-  Set("p : 𝔹") |/- "π₁ p" :: "can't perform projection on 𝔹"
-  Set("p : ℕ") |/- "π₂ p" :: "can't perform projection on ℕ"
+  Set("p : (ℕ × ℤ)") |- "L p" :: SNat
+  Set("p : (ℕ × ℤ)") |- "R p" :: SInt
+  Set("p : 𝔹") |/- "L p" :: "can't perform projection on 𝔹"
+  Set("p : ℕ") |/- "R p" :: "can't perform projection on ℕ"
 
   // AlgIx=
   Set("a : ℕ", "b : ℕ") |- "(a = b)" :: SBool

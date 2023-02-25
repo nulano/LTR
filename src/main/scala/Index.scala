@@ -122,7 +122,7 @@ case class IVariable(variable: IndexVariable) extends Index {
   // hashCode must be 0 to allow for simple α-equivalence of ∀ and ∃ types
   override def hashCode(): Int = 0
 
-  override def toString: String = variable.name
+  override def toString: String = s"${variable.name}${IndexVariableCounter.toString(variable.number)}"
 
   // IxVar
   override def sort(ctx: IndexVariable => Boolean): Sort =
@@ -213,7 +213,7 @@ case class IPair(left: Index, right: Index) extends IndexBase[IPair] {
   override def norm: IPair = IPair(left.norm, right.norm)
 }
 case class ILeft(value: Index) extends IndexBase[ILeft] {
-  override def toString: String = s"π₁ $value"
+  override def toString: String = s"L $value"
 
   // IxProj1
   override def sort(ctx: IndexVariable => Boolean): Sort = {
@@ -228,7 +228,7 @@ case class ILeft(value: Index) extends IndexBase[ILeft] {
   override def norm: ILeft = ILeft(value.norm)
 }
 case class IRight(value: Index) extends IndexBase[IRight] {
-  override def toString: String = s"π₂ $value"
+  override def toString: String = s"R $value"
 
   // IxProj2
   override def sort(ctx: IndexVariable => Boolean): Sort = {

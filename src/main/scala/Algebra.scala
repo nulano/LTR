@@ -248,7 +248,7 @@ case class APIdentity(variable: IVPlaceholder) extends AlgebraBasePattern {
       case _ => false
     }
 
-  override def toString: String = variable.name
+  override def toString: String = s"${variable.name}${IndexVariableCounter.toString(variable.number)}"
 
   override def extendParseContext(pc: ParseContext): ParseContext = pc + variable
 }
@@ -262,7 +262,7 @@ case class APPack(variable: IVPlaceholder, rest: AlgebraBasePattern) extends Alg
       case _ => false
     }
 
-  override def toString: String = s"pack(${variable.name}, $rest)"
+  override def toString: String = s"pack(${variable.name}${IndexVariableCounter.toString(variable.number)}, $rest)"
 
   override def extendParseContext(pc: ParseContext): ParseContext =
     rest.extendParseContext(pc + variable)

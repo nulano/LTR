@@ -23,7 +23,7 @@ class TypeTest extends AnyFreeSpec {
           catch
             case _: ParseException =>
               (Functor.parse(ParseContext(Parser.forString("test", string), indexVars = indexVarMap)), "functor")
-      assert(obj.toString == string)
+      assert(obj.toString.filter(c => c < '₀' | c > '₉') == string)
 
       s"$indexVarsString ⊢ $obj $tp[$expectedString]" in {
         val vd = obj.wellFormed(indexVars)
@@ -51,11 +51,11 @@ class TypeTest extends AnyFreeSpec {
           catch
             case _: ParseException =>
               (Functor.parse(ParseContext(Parser.forString("test", string), indexVars = indexVarMap)), "functor")
-      assert(obj.toString == string)
+      assert(obj.toString.filter(c => c < '₀' | c > '₉') == string)
 
       s"$indexVarsString ⊬ $obj $tp[Ξ], raises '$msg'" in {
         val ex = intercept[TypeException] { obj.wellFormed(indexVars) }
-        assert(ex.msg == msg)
+        assert(ex.msg.filter(c => c < '₀' | c > '₉') == msg)
       }
     }
   }

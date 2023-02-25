@@ -105,7 +105,7 @@ case class SCPrecondition(proposition: Proposition, rest: SubtypingConstraint) e
   }
 }
 case class SCForAll(variable: IndexVariable, rest: SubtypingConstraint) extends SubtypingConstraint {
-  override def toString: String = s"∀${variable.name} : ${variable.sort} . $rest"
+  override def toString: String = s"∀$variable . $rest"
 
   // ⊨W∀
   override def check(ctx: (IndexVariableCtx, PropositionCtx)): Unit = {

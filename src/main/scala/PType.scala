@@ -264,7 +264,7 @@ case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) exten
   override def norm: PInductive = PInductive(functor, algebra, index.norm)
 }
 case class PExists(variable: IndexVariable, tp: PType) extends PTypeBase[PExists] {
-  override def toString: String = s"∃${variable.name} : ${variable.sort} . $tp"
+  override def toString: String = s"∃$variable . $tp"
 
   // hashCode of IVariable be 0 to allow for simple α-equivalence of ∀ and ∃ types
   override def hashCode(): Int = tp.hashCode()

@@ -112,7 +112,7 @@ case class NComputation(result: PType) extends NTypeBase[NComputation] {
   override def norm: NComputation = NComputation(result.norm)
 }
 case class NForAll(variable: IndexVariable, tp: NType) extends NTypeBase[NForAll] {
-  override def toString: String = s"∀${variable.name} : ${variable.sort} . $tp"
+  override def toString: String = s"∀$variable . $tp"
 
   // hashCode of IVariable be 0 to allow for simple α-equivalence of ∀ and ∃ types
   override def hashCode(): Int = tp.hashCode()

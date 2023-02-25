@@ -8,12 +8,14 @@ class ParserTest extends AnyFreeSpec {
     parseable.getClass.getName.replace("$", "")
   }
 
+  private def removeVarSuffixes(s: String): String = s.filter(c => c < '₀' | c > '₉')
+
   private inline def parseTo[T](parseable: Parseable[? >: T], string: String, norm: String, indexVars: List[IndexVariable] = List.empty)(implicit tp: ClassTag[T]): Unit = {
     s"${parseableName(parseable)}.parse('$string') should return $tp '$norm' which roundtrips" in {
       val pc = ParseContext(Parser.forString("test", string), indexVars = indexVars.map{case i => (i.name, i)}.toMap)
       val v = parseable.parse(pc)
       assert(pc.pop(Tk.EOF).tk == Tk.EOF)
-      assert(v.toString == norm)
+      assert(removeVarSuffixes(v.toString) == norm)
       assert(tp.runtimeClass.isAssignableFrom(v.getClass), s"wrong result type: expected $tp, got ${v.getClass.getName}")
       val w = parseable.parse(ParseContext(Parser.forString("test", norm), indexVars = indexVars.map{case i => (i.name, i)}.toMap))
       assert(w == v)
@@ -25,7 +27,7 @@ class ParserTest extends AnyFreeSpec {
       val pc = ParseContext(Parser.forString("test", string), indexVars = indexVars.map{case i => (i.name, i)}.toMap)
       val v = parseable.parse(pc)
       assert(pc.pop(Tk.EOF).tk == Tk.EOF)
-      assert(v.toString == string)
+      assert(removeVarSuffixes(v.toString) == string)
       assert(tp.runtimeClass.isAssignableFrom(v.getClass), s"wrong result type: expected $tp, got ${v.getClass.getName}")
     }
   }
@@ -35,7 +37,7 @@ class ParserTest extends AnyFreeSpec {
       val pc = ParseContext(Parser.forString("test", string))
       val v = Expression.parse(pc)
       assert(pc.pop(Tk.EOF).tk == Tk.EOF)
-      assert(v.toString == norm)
+      assert(removeVarSuffixes(v.toString) == norm)
       v match {
         case ExpMatch(_, clauses) => assert(tp.runtimeClass.isAssignableFrom(clauses.getClass), s"wrong clauses type: expected $tp, got ${v.getClass.getName}")
         case _ => fail(s"wrong result type: expected ExpMatch, got ${v.getClass.getName}")
@@ -147,8 +149,8 @@ class ParserTest extends AnyFreeSpec {
   roundtrip[ISum](Index, "(foo + bar)", indexVars = List(new IVBound("foo", SNat), new IVBound("bar", SNat)))
   parseTo[IDifference](Index, "(a-1)", "(a - 1)", indexVars = List(new IVBound("a", SInt)))
   parseTo[IPair](Index, "( 1,2 )", "(1, 2)")
-  parseTo[ILeft](Index, "L foo", "π₁ foo", indexVars = List(new IVBound("foo", SProd(SNat, SInt))))
-  parseTo[IRight](Index, "π2foo", "π₂ foo", indexVars = List(new IVBound("foo", SProd(SNat, SInt))))
+  parseTo[ILeft](Index, "π₁ foo", "L foo", indexVars = List(new IVBound("foo", SProd(SNat, SInt))))
+  parseTo[IRight](Index, "π2foo", "R foo", indexVars = List(new IVBound("foo", SProd(SNat, SInt))))
   parseTo[IPEqual](Proposition, "( foo=bar )", "(foo = bar)", indexVars = List(new IVBound("foo", SNat), new IVBound("bar", SNat)))
   parseTo[IPLessEqual](Proposition, "( 1<=2 )", "(1 ≤ 2)")
   parseTo[IPAnd](Proposition, "( T&F )", "(T ∧ F)")
@@ -212,7 +214,7 @@ class ParserTest extends AnyFreeSpec {
     val pc = ParseContext(Parser.forString("test", "foo(b)"), typeVars = typeVars) + new IVBound("b", SNat)
     val v = PType.parse(pc)
     assert(pc.pop(Tk.EOF).tk == Tk.EOF)
-    assert(v.toString == "μI ⊃ (() ⇒ 0) ⇒ b")
+    assert(removeVarSuffixes(v.toString) == "μI ⊃ (() ⇒ 0) ⇒ b")
     assert(v.isInstanceOf[PInductive], s"wrong result: expected PInductive, got ${v.getClass.getName}")
   }
   raise(PType, "foo", "type variable is not bound")
@@ -222,7 +224,7 @@ class ParserTest extends AnyFreeSpec {
     val pc = ParseContext(Parser.forString("test", "μ(I ⊕ (Id ⊗ I)) ⊃ ixnat ⇒ b"), algebras = algebraVars) + new IVBound("b", SNat)
     val v = PType.parse(pc)
     assert(pc.pop(Tk.EOF).tk == Tk.EOF)
-    assert(v.toString == "μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ b")
+    assert(removeVarSuffixes(v.toString) == "μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ b")
     assert(v.isInstanceOf[PInductive], s"wrong result: expected PInductive, got ${v.getClass.getName}")
   }
   raise(Algebra, "foo", "algebra variable is not bound")
