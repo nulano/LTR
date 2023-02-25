@@ -44,11 +44,11 @@ object Main {
         |let one = succ(zero)
         |let two = succ(one)
         |
-        |def pred : ∀b : ℕ .
+        |def pred : ∀b : ℕ . [(1 ≤ b)] ⊃
         |           (nat(b) → ↑nat((b - 1)))
         |         = λx . match x {
         |                  into(y) ⇒ match y {
-        |                    inj₁ u ⇒ return x
+        |                    inj₁ u ⇒ return x    -- unreachable; (1 ≤ 0) ⊨ (b = (b - 1))
         |                  ‖ inj₂ z ⇒ match z {
         |                               <w, u> ⇒ return w
         |                             }
@@ -66,10 +66,12 @@ object Main {
         |        = λx . λy . match x {
         |            into(xx) ⇒ match xx {
         |              inj₁ u ⇒ return y
-        |            ‖ inj₂ xminusone ⇒
-        |                let recv = sum(xminusone, y);
-        |                let out = succ(recv);
-        |                return out
+        |            ‖ inj₂ xminusoneandunit ⇒ match xminusoneandunit {
+        |                <xminusone, u> ⇒
+        |                  let recv = sum(xminusone, y);
+        |                  let out = succ(recv);
+        |                  return out
+        |              }
         |            }
         |          }
         |let four = sum(two, twoagain)

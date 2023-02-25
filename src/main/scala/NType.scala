@@ -66,7 +66,7 @@ object NType extends Parseable[NType], TypeEquality[NType], TypeSubtype[NType] {
       // <:⁻/⊣∀L
       case (NForAll(lv, lt), _) =>
         val temp = new IVAlgorithmic(lv)
-        val w = NType.equivalent((IVariable(temp) / lv)(lt), right)(ctx + temp)
+        val w = NType.subtype((IVariable(temp) / lv)(lt), right)(ctx + temp)
         if temp.solution.isEmpty then
           throw TypeException(s"failed to determine algorithmic variable $temp")
         else SCForAll(temp.variable, w)

@@ -63,7 +63,7 @@ sealed trait Index extends SubstitutableIndex[Index] {
    */
   final def isGround: Boolean =
     try
-      sort(_ => false); true
+      sort(!_.isInstanceOf[IVAlgorithmic]); true  // TODO other vars are OK???
     catch case _: SortException => false
 }
 sealed trait IndexBase[T <: IndexBase[T]] extends Index, SubstitutableIndex[T]

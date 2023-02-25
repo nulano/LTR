@@ -39,7 +39,7 @@ case class HeadValue(value: Value, tp: PType)(val token: Token) extends Head {
     val ctx: IndexVariableCtx = Set()  // TODO???
     tp.wellFormed(ctx)
     val out = Value.checkType(value, tp)(ctx, vc)
-    // TODO check out
+    out.foreach(_.check((ctx, List()), vc)) // TODO proposition ctx, simplify
     tp
   }
 }
@@ -89,7 +89,7 @@ case class BEApplication(head: Head, spine: List[Value])(val token: Token) exten
     head.getType(vc) match
       case PSuspended(headType) =>
         val (res, const) = BEApplication.applySpine(headType, spine)(ctx, vc)
-        // TODO check const
+        const.foreach(_.check((ctx, List()), vc)) // TODO proposition ctx, simplify
         NComputation(res)
       case headType => throw TypeException(s"type '$headType' is not a suspended computation")
   }

@@ -231,9 +231,9 @@ case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) exten
       // AlgUnrollId
       case (FProduct(FIdentity, fr), AlgebraProd(APProduct(APIdentity(v), apr), ai)) =>
         val v2 = IVariable(new IVBound(v.name, index.sort))
-        val left = PExists(v2.variable, PInductive(functor, algebra, v2))
+        val left = PInductive(functor, algebra, v2)
         val right = unroll(fr, AlgebraProd(apr, (v2 / v)(ai)))
-        PProd(left, right)
+        PExists(v2.variable, PProd(left, right))
       // AlgUnroll∃
       case (FProduct(FConstant(PExists(fv, ft)), fr), AlgebraProd(APProduct(APPack(av, ar), apr), ai)) =>
         val v2 = IVariable(new IVBound(fv.name, fv.sort))

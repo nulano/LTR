@@ -50,20 +50,22 @@ object Expression extends Parseable[Expression] {
       // Alg⇐↑
       case (ExpReturn(v), NComputation(t)) =>
         val out = Value.checkType(v, t)(ctx2, vars)
-        // TODO check out
+        out.foreach(_.check((ctx, List()), vars))  // TODO proposition ctx, simplify
       // Alg⇐let
       case (ExpLet(v, be, bd), _) =>
         val (vte, (vve, vpe)) = be.getType(vars).result.extract
         checkType(bd, te)(ctx2 ++ vve, vars + ((v, vte)))  // TODO vpe
-      // TODO Alg⇐match
-
+      // Alg⇐match
+      case (ExpMatch(h, c), _) =>
+        val ht = h.getType(vars)
+        MatchPattern.checkType(c, ht, tp)(ctx, vars)
       // Alg⇐λ
       case (ExpFunction(av, be), NFunction(at, bt)) =>
         checkType(be, bt)(ctx2, vars + ((av, at)))
       // Alg⇐rec
       case (ExpRecursive(rv, NForAll(rtv, rtt), rb), _) if rtv.sort == SNat =>
         val ro = NType.subtype(NForAll(rtv, rtt), te)(ctx2)
-        // TODO check ro
+        ro.check((ctx, List()))  // TODO proposition ctx
         val temp = IVariable(new IVBound(rtv.name, SNat))
         val cond = IPAnd(IPLessEqual(temp, IVariable(rtv)), IPNot(IPEqual(temp, IVariable(rtv))))  // TODO extend syntax?
         val rct = NForAll(temp.variable, NPrecondition(cond, (temp / rtv)(rtt)))
