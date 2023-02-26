@@ -18,7 +18,24 @@ trait SubstitutableIndex[+T] {
 
 type IndexVariableCtx = Set[IndexVariable]
 type PropositionCtx = List[Proposition]
-type LogicCtx = (IndexVariableCtx, PropositionCtx)
+case class LogicCtx(idxVars: IndexVariableCtx, propositions: PropositionCtx) {
+  @targetName("incl")
+  inline def +(variable: IndexVariable): LogicCtx = LogicCtx(idxVars + variable, propositions)
+
+  @targetName("incl")
+  inline def +(proposition: Proposition): LogicCtx = LogicCtx(idxVars, proposition +: propositions)
+
+  @targetName("concat")
+  inline def ++(other: LogicCtx): LogicCtx =
+    LogicCtx(idxVars ++ other.idxVars, propositions ++ other.propositions)
+
+  override def toString: String = (idxVars, propositions) match {
+    case (s, Nil) if s.isEmpty => "∙"
+    case (_, Nil) => idxVars.mkString("(", ", ", ")")
+    case (s, _) if s.isEmpty => propositions.mkString("(", ", ", ")")
+    case (_, _) => s"(${idxVars.mkString(", ")}, ${propositions.mkString(", ")})"
+  }
+}
 
 trait Extracts[T <: Extracts[T]] {
   /**

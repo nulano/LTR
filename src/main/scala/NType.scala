@@ -1,5 +1,5 @@
 sealed trait NType extends Extracts[NType], WellFormed, SubstitutableIndex[NType] {
-  override def extract: (NType, LogicCtx) = (this, (Set.empty, List.empty))
+  override def extract: (NType, LogicCtx) = (this, LogicCtx(Set.empty, List.empty))
 }
 sealed trait NTypeBase[T <: NTypeBase[T]] extends NType, SubstitutableIndex[T]
 
@@ -56,8 +56,8 @@ object NType extends Parseable[NType], TypeEquality[NType], TypeSubtype[NType] {
     (left, right) match {
       // <:⁻/⊣↑
       case (NComputation(l), NComputation(r)) =>
-        val (le, (_, lp)) = l.extract
-        lp.foldRight(SCPSubtype(le, r))(SCPrecondition.apply)
+        val (le, lc) = l.extract
+        lc.propositions.foldRight(SCPSubtype(le, r))(SCPrecondition.apply)
       // <:⁻/⊣⊃L
       case (NPrecondition(lp, lt), _) =>
         val w1 = NType.subtype(lt, right)(ctx)
@@ -85,9 +85,9 @@ case class NFunction(arg: PType, body: NType) extends NTypeBase[NFunction] {
 
   // ⇝⁻→
   override def extract: (NType, LogicCtx) = {
-    val (le, (lv, lp)) = arg.extract
-    val (re, (rv, rp)) = body.extract
-    (NFunction(le, re), (lv ++ rv, lp ++ rp))
+    val (le, lc) = arg.extract
+    val (re, rc) = body.extract
+    (NFunction(le, re), lc ++ rc)
   }
 
   // AlgTp→
@@ -128,8 +128,8 @@ case class NForAll(variable: IndexVariable, tp: NType) extends NTypeBase[NForAll
 
   // ⇝⁻∀
   override def extract: (NType, LogicCtx) = {
-    val (tpe, (v, p)) = tp.extract
-    (tpe, (v + variable, p))
+    val (tpe, ctx) = tp.extract
+    (tpe, ctx + variable)
   }
 
   // AlgTp∀
@@ -150,8 +150,8 @@ case class NPrecondition(proposition: Proposition, tp: NType) extends NTypeBase[
 
   // ⇝⁻⊃
   override def extract: (NType, LogicCtx) = {
-    val (tpe, (v, p)) = tp.extract
-    (tpe, (v, proposition +: p))
+    val (tpe, ctx) = tp.extract
+    (tpe, ctx + proposition)
   }
 
   // AlgTp⊃

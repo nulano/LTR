@@ -1,5 +1,5 @@
 sealed trait PType extends Extracts[PType], WellFormed, SubstitutableIndex[PType] {
-  override def extract: (PType, LogicCtx) = (this, (Set.empty, List.empty))
+  override def extract: (PType, LogicCtx) = (this, LogicCtx(Set.empty, List.empty))
 }
 sealed trait PTypeBase[T <: PTypeBase[T]] extends PType, SubstitutableIndex[T]
 
@@ -138,8 +138,8 @@ object PType extends Parseable[PType], TypeEquality[PType], TypeSubtype[PType] {
         SCConjunction(w1, SCProposition(IPEqual(li, ri)))
       // <:⁺/⊣↓
       case (PSuspended(l), PSuspended(r)) =>
-        val (re, (_, rp)) = r.extract
-        rp.foldRight(SCNSubtype(l, re))(SCPrecondition.apply)
+        val (re, ctx) = r.extract
+        ctx.propositions.foldRight(SCNSubtype(l, re))(SCPrecondition.apply)
       case _ => throw TypeException(s"positive types are not subtypes: $left </: $right")
   }
 }
@@ -159,9 +159,9 @@ case class PProd(left: PType, right: PType) extends PTypeBase[PProd] {
 
   // ⇝⁺×
   override def extract: (PType, LogicCtx) = {
-    val (le, (lv, lp)) = left.extract
-    val (re, (rv, rp)) = right.extract
-    (PProd(le, re), (lv ++ rv, lp ++ rp))
+    val (le, lc) = left.extract
+    val (re, rc) = right.extract
+    (PProd(le, re), lc ++ rc)
   }
 
   // AlgTp×
@@ -280,8 +280,8 @@ case class PExists(variable: IndexVariable, tp: PType) extends PTypeBase[PExists
 
   // ⇝⁺∃
   override def extract: (PType, LogicCtx) = {
-    val (tpe, (v, p)) = tp.extract
-    (tpe, (v + variable, p))
+    val (tpe, ctx) = tp.extract
+    (tpe, ctx + variable)
   }
 
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = {
@@ -301,8 +301,8 @@ case class PProperty(tp: PType, proposition: Proposition) extends PTypeBase[PPro
 
   // ⇝⁺∧
   override def extract: (PType, LogicCtx) = {
-    val (tpe, (v, p)) = tp.extract
-    (tpe, (v, proposition +: p))
+    val (tpe, ctx) = tp.extract
+    (tpe, ctx + proposition)
   }
 
   // AlgTp∧

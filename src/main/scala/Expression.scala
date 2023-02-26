@@ -42,34 +42,32 @@ object Expression extends Parseable[Expression] {
    * @param vars the variable context, i.e. Γ
    */
   @tailrec
-  def checkType(expression: Expression, tp: NType)(ctx: IndexVariableCtx, vars: VariableContext): Unit = {
-    // TODO provide proposition context
-    val (te, (ve, pe)) = tp.extract
-    val ctx2 = ctx ++ ve
+  def checkType(expression: Expression, tp: NType)(ctx: LogicCtx, vars: VariableContext): Unit = {
+    val (te, tc) = tp.extract
+    val ctx2 = ctx ++ tc
     (expression, te) match
       // Alg⇐↑
       case (ExpReturn(v), NComputation(t)) =>
-        val out = Value.checkType(v, t)(ctx2, vars)
-        out.foreach(_.check((ctx, List()), vars))  // TODO proposition ctx, simplify
+        val out = Value.checkType(v, t)(ctx2.idxVars, vars)
+        out.foreach(_.check(ctx2, vars))
       // Alg⇐let
       case (ExpLet(v, be, bd), _) =>
-        val (vte, (vve, vpe)) = be.getType(vars).result.extract
-        checkType(bd, te)(ctx2 ++ vve, vars + ((v, vte)))  // TODO vpe
+        val (vt, vc) = be.getType(vars).result.extract
+        checkType(bd, te)(ctx2 ++ vc, vars + ((v, vt)))
       // Alg⇐match
       case (ExpMatch(h, c), _) =>
         val ht = h.getType(vars)
-        MatchPattern.checkType(c, ht, tp)(ctx, vars)
+        MatchPattern.checkType(c, ht, tp)(ctx2, vars)
       // Alg⇐λ
       case (ExpFunction(av, be), NFunction(at, bt)) =>
         checkType(be, bt)(ctx2, vars + ((av, at)))
       // Alg⇐rec
       case (ExpRecursive(rv, NForAll(rtv, rtt), rb), _) if rtv.sort == SNat =>
-        val ro = NType.subtype(NForAll(rtv, rtt), te)(ctx2)
-        ro.check((ctx, List()))  // TODO proposition ctx
+        NType.subtype(NForAll(rtv, rtt), te)(ctx2.idxVars).check(ctx2)
         val temp = IVariable(new IVBound(rtv.name, SNat))
         val cond = IPAnd(IPLessEqual(temp, IVariable(rtv)), IPNot(IPEqual(temp, IVariable(rtv))))  // TODO extend syntax?
-        val rct = NForAll(temp.variable, NPrecondition(cond, (temp / rtv)(rtt)))
-        checkType(rb, rtt)(ctx2 + rtv, vars + ((rv, PSuspended(rct))))
+        val rct = PSuspended(NForAll(temp.variable, NPrecondition(cond, (temp / rtv)(rtt))))
+        checkType(rb, rtt)(ctx2 + rtv, vars + ((rv, rct)))
       case _ => throw TypeException(s"expression does not match type: $expression ⇐ $tp")
   }
 }
@@ -99,7 +97,7 @@ object MatchPattern extends Parseable[MatchPattern] {
     val tok2 = pc.pop()
     tok2.tk match {
       case Tk.RBrace => MPVoid()(tok)
-      case Tk.LAngle => {
+      case Tk.LAngle =>
         if pc.peek().tk == Tk.RAngle then {
           pc.pop(Tk.RAngle)
           pc.pop(Tk.DRight)
@@ -116,8 +114,7 @@ object MatchPattern extends Parseable[MatchPattern] {
           pc.pop(Tk.RBrace)
           MPProd(left, right, body)(tok)
         }
-      }
-      case Tk.Inl => {
+      case Tk.Inl =>
         val left = pc.pop(Tk.Var).text
         pc.pop(Tk.DRight)
         val leftBody = Expression.parse(pc)
@@ -128,8 +125,7 @@ object MatchPattern extends Parseable[MatchPattern] {
         val rightBody = Expression.parse(pc)
         pc.pop(Tk.RBrace)
         MPSum(left, leftBody, right, rightBody)(tok)
-      }
-      case Tk.Inr => {
+      case Tk.Inr =>
         val right = pc.pop(Tk.Var).text
         pc.pop(Tk.DRight)
         val rightBody = Expression.parse(pc)
@@ -140,8 +136,7 @@ object MatchPattern extends Parseable[MatchPattern] {
         val leftBody = Expression.parse(pc)
         pc.pop(Tk.RBrace)
         MPSum(left, leftBody, right, rightBody)(tok)
-      }
-      case Tk.Into => {
+      case Tk.Into =>
         pc.pop(Tk.LParen)
         val variable = pc.pop(Tk.Var).text
         pc.pop(Tk.RParen)
@@ -149,11 +144,10 @@ object MatchPattern extends Parseable[MatchPattern] {
         val body = Expression.parse(pc)
         pc.pop(Tk.RBrace)
         MPInto(variable, body)(tok)
-      }
       case _ => throw UnexpectedTokenParseException(tok2, "a match pattern")
     }
   }
-  
+
   /**
    * Check match pattern matches arg with output tp, i.e. `Θ; Γ [arg] ▷ pattern ⇐ tp'` (fig. 67a)
    *
@@ -164,38 +158,35 @@ object MatchPattern extends Parseable[MatchPattern] {
    * @param vars the variable context, i.e. Γ
    */
   @tailrec
-  def checkType(pattern: MatchPattern, arg: PType, tp: NType)(ctx: IndexVariableCtx, vars: VariableContext): Unit = {
+  def checkType(pattern: MatchPattern, arg: PType, tp: NType)(ctx: LogicCtx, vars: VariableContext): Unit = {
     (pattern, arg) match {
       // AlgMatch∃
       case (_, pe: PExists) =>
         checkType(pattern, pe.tp, tp)(ctx + pe.variable, vars)
       // AlgMatch∧
       case (_, pp: PProperty) =>
-        // TODO pp.proposition
-        checkType(pattern, pp.tp, tp)(ctx, vars)
+        checkType(pattern, pp.tp, tp)(ctx + pp.proposition, vars)
       // AlgMatch1
       case (mpu: MPUnit, PUnit) =>
         Expression.checkType(mpu.body, tp)(ctx, vars)
       // AlgMatch×
       case (mpp: MPProd, pp: PProd) =>
-        val (ae, (av, ap)) = pp.left.extract
-        val (be, (bv, bp)) = pp.right.extract
-        // TODO ap + bp
-        Expression.checkType(mpp.body, tp)(ctx ++ av ++ bv, vars + ((mpp.left, ae)) + ((mpp.right, be)))
+        val (ae, ac) = pp.left.extract
+        val (be, bc) = pp.right.extract
+        Expression.checkType(mpp.body, tp)(ctx ++ ac ++ bc, vars + ((mpp.left, ae)) + ((mpp.right, be)))
       // AlgMatch+
       case (mps: MPSum, ps: PSum) =>
-        val (ae, (av, ap)) = ps.left.extract
-        val (be, (bv, bp)) = ps.right.extract
-        // TODO ap, bp
-        Expression.checkType(mps.leftBody, tp)(ctx ++ av, vars + ((mps.left, ae)))
-        Expression.checkType(mps.rightBody, tp)(ctx ++ bv, vars + ((mps.right, be)))
+        val (ae, ac) = ps.left.extract
+        val (be, bc) = ps.right.extract
+        Expression.checkType(mps.leftBody, tp)(ctx ++ ac, vars + ((mps.left, ae)))
+        Expression.checkType(mps.rightBody, tp)(ctx ++ bc, vars + ((mps.right, be)))
       // AlgMatch0
       case (_: MPVoid, PVoid) => ()
       // AlgMatchμ
       case (mpi: MPInto, pi: PInductive) =>
-        val (ae, (av, ap)) = pi.unroll.extract
-        // TODO ap
-        Expression.checkType(mpi.body, tp)(ctx ++ av, vars + ((mpi.variable, ae)))
+        val (ue, uc) = pi.unroll.extract
+        Expression.checkType(mpi.body, tp)(ctx ++ uc, vars + ((mpi.variable, ue)))
+      case _ => throw TypeException(s"match pattern does not match argument type: $pattern, $arg")
     }
   }
 }

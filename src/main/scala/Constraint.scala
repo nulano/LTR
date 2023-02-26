@@ -44,8 +44,8 @@ case class TCExpression(expr: Expression, tp: NType) extends TypingConstraint {
   override def toString: String = s"($expr ⇐ $tp)"
 
   // ◁NegChk
-  override def check(ctx: (IndexVariableCtx, PropositionCtx), vars: VariableContext): Unit =
-    Expression.checkType(expr, tp.norm)(ctx._1, vars)  // TODO proposition context
+  override def check(ctx: LogicCtx, vars: VariableContext): Unit =
+    Expression.checkType(expr, tp.norm)(ctx, vars)
 }
 
 sealed trait SubtypingConstraint extends TypingConstraint {
@@ -54,20 +54,23 @@ sealed trait SubtypingConstraint extends TypingConstraint {
    * @param ctx  the logic context, i.e. Θ
    */
   def check(ctx: LogicCtx): Unit
-  
-  final override def check(ctx: (IndexVariableCtx, PropositionCtx), vars: VariableContext): Unit = check(ctx)
+
+  final override def check(ctx: LogicCtx, vars: VariableContext): Unit = check(ctx)
 }
 
 case class SCConjunction(constraints: List[SubtypingConstraint]) extends SubtypingConstraint {
   override def toString: String = constraints.mkString("(", " ∧ ", ")")
 
   // ⊨W∧
-  override def check(ctx: (IndexVariableCtx, PropositionCtx)): Unit =
+  override def check(ctx: LogicCtx): Unit =
     constraints.foreach(_.check(ctx))
 }
 object SCConjunction {
   def apply(left: SubtypingConstraint, right: SubtypingConstraint): SCConjunction = {
     (left, right) match {
+      // TODO simplify:
+      //      case (SCProposition(IPTrue), _) => right
+      //      case (_, SCProposition(IPTrue)) => left
       case (SCConjunction(l), SCConjunction(r)) => SCConjunction(l ++ r)
       case (SCConjunction(l), _) => SCConjunction(l :+ right)
       case (_, SCConjunction(r)) => SCConjunction(left +: r)
@@ -79,10 +82,10 @@ case class SCProposition(proposition: Proposition) extends SubtypingConstraint {
   override def toString: String = proposition.toString
 
   // ⊨WPrp
-  override def check(ctx: (IndexVariableCtx, PropositionCtx)): Unit = {
+  override def check(ctx: LogicCtx): Unit = {
     if proposition != IPTrue then {
       // TODO call SMT solver
-      println(s"!! SMT solver not implemented, assuming ${ctx._2.mkString(", ")} ⊨ ${proposition.norm}")
+      println(s"\t!! SMT solver not implemented, assuming $ctx ⊨ ${proposition.norm}")
     }
   }
 }
@@ -91,52 +94,52 @@ case class SCEquivalent(left: Proposition, right: Proposition) extends Subtyping
   override def toString: String = s"$left ≡ $right"
 
   // ⊨WPrp≡
-  override def check(ctx: (IndexVariableCtx, PropositionCtx)): Unit = {
+  override def check(ctx: LogicCtx): Unit = {
     // TODO call SMT solver
-    println(s"!! SMT solver not implemente, assuming ${ctx._2.mkString(", ")} ⊨ ${left.norm} ≡ ${right.norm}")
+    println(s"\t!! SMT solver not implemented, assuming $ctx ⊨ ${left.norm} ≡ ${right.norm}")
   }
 }
 case class SCPrecondition(proposition: Proposition, rest: SubtypingConstraint) extends SubtypingConstraint {
   override def toString: String = s"$proposition ⊃ $rest"
 
   // ⊨W⊃
-  override def check(ctx: (IndexVariableCtx, PropositionCtx)): Unit = {
-    rest.check((ctx._1, ctx._2 :+ proposition))
+  override def check(ctx: LogicCtx): Unit = {
+    rest.check(ctx + proposition)
   }
 }
 case class SCForAll(variable: IndexVariable, rest: SubtypingConstraint) extends SubtypingConstraint {
   override def toString: String = s"∀$variable . $rest"
 
   // ⊨W∀
-  override def check(ctx: (IndexVariableCtx, PropositionCtx)): Unit = {
-    rest.check((ctx._1 + variable, ctx._2))
+  override def check(ctx: LogicCtx): Unit = {
+    rest.check(ctx + variable)
   }
 }
 case class SCPSubtype(left: PType, right: PType) extends SubtypingConstraint {
   override def toString: String = s"$left <:⁺ $right"
 
   // ⊨W<:⁺
-  override def check(ctx: (IndexVariableCtx, PropositionCtx)): Unit =
-    PType.subtype(left, right)(ctx._1).check(ctx)
+  override def check(ctx: LogicCtx): Unit =
+    PType.subtype(left, right)(ctx.idxVars).check(ctx)
 }
 case class SCNSubtype(left: NType, right: NType) extends SubtypingConstraint {
   override def toString: String = s"$left <:⁻ $right"
 
   // ⊨W<:⁻
-  override def check(ctx: (IndexVariableCtx, PropositionCtx)): Unit =
-    NType.subtype(left, right)(ctx._1).check(ctx)
+  override def check(ctx: LogicCtx): Unit =
+    NType.subtype(left, right)(ctx.idxVars).check(ctx)
 }
 case class SCPEquivalent(left: PType, right: PType) extends SubtypingConstraint {
   override def toString: String = s"$left ≡⁺ $right"
 
   // ⊨W<:⁺
-  override def check(ctx: (IndexVariableCtx, PropositionCtx)): Unit =
-    PType.equivalent(left, right)(ctx._1).check(ctx)
+  override def check(ctx: LogicCtx): Unit =
+    PType.equivalent(left, right)(ctx.idxVars).check(ctx)
 }
 case class SCNEquivalent(left: NType, right: NType) extends SubtypingConstraint {
   override def toString: String = s"$left ≡⁻ $right"
 
   // ⊨W<:⁻
-  override def check(ctx: (IndexVariableCtx, PropositionCtx)): Unit =
-    NType.equivalent(left, right)(ctx._1).check(ctx)
+  override def check(ctx: LogicCtx): Unit =
+    NType.equivalent(left, right)(ctx.idxVars).check(ctx)
 }

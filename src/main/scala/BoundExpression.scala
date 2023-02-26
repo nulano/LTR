@@ -36,10 +36,10 @@ case class HeadValue(value: Value, tp: PType)(val token: Token) extends Head {
 
   // Alg⇒ValAnnot
   override def getType(vc: VariableContext): PType = {
-    val ctx: IndexVariableCtx = Set()  // TODO???
-    tp.wellFormed(ctx)
-    val out = Value.checkType(value, tp)(ctx, vc)
-    out.foreach(_.check((ctx, List()), vc)) // TODO proposition ctx, simplify
+    val ctx: LogicCtx = LogicCtx(Set.empty, Nil)  // TODO
+    tp.wellFormed(ctx.idxVars)
+    val out = Value.checkType(value, tp)(ctx.idxVars, vc)
+    out.foreach(_.check(ctx, vc)) // TODO simplify
     tp
   }
 }
@@ -85,11 +85,11 @@ case class BEApplication(head: Head, spine: List[Value])(val token: Token) exten
 
   // Alg⇒App
   override def getType(vc: VariableContext): NComputation = {
-    val ctx: IndexVariableCtx = Set() // TODO ???
+    val ctx: LogicCtx = LogicCtx(Set.empty, Nil) // TODO
     head.getType(vc) match
       case PSuspended(headType) =>
-        val (res, const) = BEApplication.applySpine(headType, spine)(ctx, vc)
-        const.foreach(_.check((ctx, List()), vc)) // TODO proposition ctx, simplify
+        val (res, const) = BEApplication.applySpine(headType, spine)(ctx.idxVars, vc)
+        const.foreach(_.check(ctx, vc)) // TODO simplify
         NComputation(res)
       case headType => throw TypeException(s"type '$headType' is not a suspended computation")
   }
@@ -126,8 +126,8 @@ case class BEExpression(exp: Expression, tp: PType)(val token: Token) extends Bo
 
   // Alg⇒ExpAnnot
   override def getType(vc: VariableContext): NComputation = {
-    val ctx: IndexVariableCtx = Set()  // TODO ???
-    tp.wellFormed(ctx)
+    val ctx: LogicCtx = LogicCtx(Set.empty, Nil) // TODO
+    tp.wellFormed(ctx.idxVars)
     Expression.checkType(exp, resultType)(ctx, vc)
     resultType
   }
