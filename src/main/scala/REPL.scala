@@ -1,7 +1,7 @@
 
 class REPL {
-  var vars: Map[String, PType] = Map()
-  // TODO var logicContext = ...
+  var ctx: LogicCtx = LogicCtx.empty
+  var vars: VariableContext = Map()
   var typeVars: Map[String, TypeVar] = Map()
   var algebras: Map[String, Algebra] = Map()
 
@@ -13,8 +13,9 @@ class REPL {
     cmd match
       case command: REPLLetCommand =>
         val (variable, boundExpression) = command.assignment
-        val tp = boundExpression.getType(vars).result
-        this.vars = this.vars + ((variable, tp))  // TODO extract?
+        val (tp, c) = boundExpression.getType(ctx, vars).result.extract
+        this.ctx = this.ctx ++ c
+        this.vars = this.vars + ((variable, tp))
         s"let $variable : $tp"
       case REPLAlgebra(variable, alg) =>
         this.algebras = this.algebras + ((variable, alg))

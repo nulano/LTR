@@ -128,8 +128,9 @@ case class NForAll(variable: IndexVariable, tp: NType) extends NTypeBase[NForAll
 
   // ⇝⁻∀
   override def extract: (NType, LogicCtx) = {
-    val (tpe, ctx) = tp.extract
-    (tpe, ctx + variable)
+    val temp = new IVBound(variable.name, variable.sort)
+    val (tpe, ctx) = (IVariable(temp) / variable)(tp).extract
+    (tpe, ctx + temp)
   }
 
   // AlgTp∀

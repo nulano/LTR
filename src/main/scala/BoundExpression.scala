@@ -3,10 +3,11 @@ import scala.collection.mutable.ListBuffer
 sealed trait Head {
   /**
    * Compute synthesized type, i.e. `Θ; Γ ▷ this ⇒ P` (fig. 65a)
-   * @param vc the variable context, i.e. Γ
+   * @param ctx the logic context, i.e. Θ
+   * @param vars the variable context, i.e. Γ
    * @return the synthesized type, i.e. P
    */
-  def getType(vc: VariableContext): PType
+  def getType(ctx: LogicCtx, vars: VariableContext): PType
 }
 
 object Head extends Parseable[Head] {
@@ -29,17 +30,19 @@ case class HeadVariable(variable: String)(val token: Token) extends Head {
   override def toString: String = variable
 
   // Alg⇒Var
-  override def getType(vc: VariableContext): PType = vc(variable)
+  override def getType(ctx: LogicCtx, vars: VariableContext): PType =
+    vars.get(variable) match
+      case Some(value) => value
+      case None => throw TypeException(s"unbound variable $variable")
 }
 case class HeadValue(value: Value, tp: PType)(val token: Token) extends Head {
   override def toString: String = s"[$value : $tp]"
 
   // Alg⇒ValAnnot
-  override def getType(vc: VariableContext): PType = {
-    val ctx: LogicCtx = LogicCtx(Set.empty, Nil)  // TODO
+  override def getType(ctx: LogicCtx, vars: VariableContext): PType = {
     tp.wellFormed(ctx.idxVars)
-    val out = Value.checkType(value, tp)(ctx.idxVars, vc)
-    out.foreach(_.check(ctx, vc)) // TODO simplify
+    val out = Value.checkType(value, tp)(ctx.idxVars, vars)
+    out.foreach(_.check(ctx, vars)) // TODO simplify
     tp
   }
 }
@@ -47,10 +50,11 @@ case class HeadValue(value: Value, tp: PType)(val token: Token) extends Head {
 sealed trait BoundExpression {
   /**
    * Compute synthesized type, i.e. `Θ; Γ ▷ this ⇒ ↑P` (fig. 65b)
-   * @param vc the variable context, i.e. Γ
+   * @param ctx  the logic context, i.e. Θ
+   * @param vars the variable context, i.e. Γ
    * @return the synthesized type, i.e. ↑P
    */
-  def getType(vc: VariableContext): NComputation
+  def getType(ctx: LogicCtx, vars: VariableContext): NComputation
 }
 
 object BoundExpression extends Parseable[BoundExpression] {
@@ -84,12 +88,11 @@ case class BEApplication(head: Head, spine: List[Value])(val token: Token) exten
   override def toString: String = s"$head(${spine.mkString(",")})"
 
   // Alg⇒App
-  override def getType(vc: VariableContext): NComputation = {
-    val ctx: LogicCtx = LogicCtx(Set.empty, Nil) // TODO
-    head.getType(vc) match
+  override def getType(ctx: LogicCtx, vars: VariableContext): NComputation = {
+    head.getType(ctx, vars) match
       case PSuspended(headType) =>
-        val (res, const) = BEApplication.applySpine(headType, spine)(ctx.idxVars, vc)
-        const.foreach(_.check(ctx, vc)) // TODO simplify
+        val (res, const) = BEApplication.applySpine(headType, spine)(ctx.idxVars, vars)
+        const.foreach(_.check(ctx, vars)) // TODO simplify
         NComputation(res)
       case headType => throw TypeException(s"type '$headType' is not a suspended computation")
   }
@@ -125,10 +128,9 @@ case class BEExpression(exp: Expression, tp: PType)(val token: Token) extends Bo
   override def toString: String = s"($exp : $resultType)"
 
   // Alg⇒ExpAnnot
-  override def getType(vc: VariableContext): NComputation = {
-    val ctx: LogicCtx = LogicCtx(Set.empty, Nil) // TODO
+  override def getType(ctx: LogicCtx, vars: VariableContext): NComputation = {
     tp.wellFormed(ctx.idxVars)
-    Expression.checkType(exp, resultType)(ctx, vc)
+    Expression.checkType(exp, resultType)(ctx, vars)
     resultType
   }
 }

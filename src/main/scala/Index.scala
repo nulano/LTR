@@ -36,6 +36,9 @@ case class LogicCtx(idxVars: IndexVariableCtx, propositions: PropositionCtx) {
     case (_, _) => s"(${idxVars.mkString(", ")}, ${propositions.mkString(", ")})"
   }
 }
+object LogicCtx {
+  val empty: LogicCtx = LogicCtx(Set.empty, List.empty)
+}
 
 trait Extracts[T <: Extracts[T]] {
   /**

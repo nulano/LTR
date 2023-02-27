@@ -52,11 +52,11 @@ object Expression extends Parseable[Expression] {
         out.foreach(_.check(ctx2, vars))
       // Alg⇐let
       case (ExpLet(v, be, bd), _) =>
-        val (vt, vc) = be.getType(vars).result.extract
+        val (vt, vc) = be.getType(ctx2, vars).result.extract
         checkType(bd, te)(ctx2 ++ vc, vars + ((v, vt)))
       // Alg⇐match
       case (ExpMatch(h, c), _) =>
-        val ht = h.getType(vars)
+        val ht = h.getType(ctx2, vars)
         MatchPattern.checkType(c, ht, tp)(ctx2, vars)
       // Alg⇐λ
       case (ExpFunction(av, be), NFunction(at, bt)) =>

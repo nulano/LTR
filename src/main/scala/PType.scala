@@ -280,8 +280,9 @@ case class PExists(variable: IndexVariable, tp: PType) extends PTypeBase[PExists
 
   // ⇝⁺∃
   override def extract: (PType, LogicCtx) = {
-    val (tpe, ctx) = tp.extract
-    (tpe, ctx + variable)
+    val temp = new IVBound(variable.name, variable.sort)
+    val (tpe, ctx) = (IVariable(temp) / variable)(tp).extract
+    (tpe, ctx + temp)
   }
 
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = {
