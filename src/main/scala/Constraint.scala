@@ -83,10 +83,8 @@ case class SCProposition(proposition: Proposition) extends SubtypingConstraint {
 
   // ⊨WPrp
   override def check(ctx: LogicCtx): Unit = {
-    if proposition != IPTrue then {
-      // TODO call SMT solver
-      println(s"\t!! SMT solver not implemented, assuming $ctx ⊨ ${proposition.norm}")
-    }
+    if proposition != IPTrue && !Z3.unsat(ctx + IPNot(proposition.norm)) then
+      throw TypeException(s"failed to verify $ctx ⊨ ${proposition.norm}")
   }
 }
 val SCTrue: SCProposition = SCProposition(IPTrue)
@@ -95,8 +93,8 @@ case class SCEquivalent(left: Proposition, right: Proposition) extends Subtyping
 
   // ⊨WPrp≡
   override def check(ctx: LogicCtx): Unit = {
-    // TODO call SMT solver
-    println(s"\t!! SMT solver not implemented, assuming $ctx ⊨ ${left.norm} ≡ ${right.norm}")
+    if !Z3.unsat(ctx + IPNot(IPEqual(left.norm, right.norm))) then
+      throw TypeException(s"failed to verify $ctx ⊨ ${left.norm} ≡ ${right.norm}")
   }
 }
 case class SCPrecondition(proposition: Proposition, rest: SubtypingConstraint) extends SubtypingConstraint {
