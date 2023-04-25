@@ -1,3 +1,4 @@
+import java.io.{BufferedReader, InputStreamReader}
 import scala.collection.mutable.ListBuffer
 import scala.language.postfixOps
 
@@ -70,16 +71,22 @@ object SMTLIBGenerator {
 }
 
 object Z3 {
+  private val process = new ProcessBuilder("z3", "-in").start()
+  private val processInput = process.getOutputStream
+  private val processOutput = new BufferedReader(new InputStreamReader(process.getInputStream))
+
   /**
    * Check that ctx is unsatisfiable, i.e. that its negation is valid.
    * @param ctx the logic context to check
    * @return true if ctx is not satisfiable, false otherwise
    */
   def unsat(ctx: LogicCtx): Boolean = {
-    val text = SMTLIBGenerator.generate(ctx).mkString("\n")
-    val input: java.io.InputStream = new java.io.ByteArrayInputStream(text.getBytes)
-    val process = scala.sys.process.Process("z3 -in")
-    val output = process #< input !!;
+    val text = SMTLIBGenerator.generate(ctx).mkString("(reset)\n", "\n", "\n")
+    processInput.write(text.getBytes)
+    processInput.flush()
+    val output = processOutput.readLine()
+    if output == null || !process.isAlive then
+      throw new RuntimeException("Z3 process died")
     output.trim == "unsat"
   }
 }
