@@ -7,7 +7,7 @@ object SMTLIBGenerator {
 
   private def convert(sort: Sort): String = sort match
     case SBool => "Bool"
-    case SNat => "Int"  // TODO ℕ not supported??
+    case SNat => "Int"  // ℕ not supported, add separate assertions and special-case subtraction
     case SInt => "Int"
     case SProd(left, right) => s"(Pair ${convert(left)} ${convert(right)})"
 
@@ -16,7 +16,14 @@ object SMTLIBGenerator {
     case INatConstant(value) => value.toString
     case IIntConstant(value) => value.toString
     case ISum(left, right) => s"(+ ${convert(left)} ${convert(right)})"
-    case IDifference(left, right) => s"(- ${convert(left)} ${convert(right)})"
+    case IDifference(left, right) =>
+      if left.sort == SNat then
+        val i = IndexVariableCounter.next
+        val lv = s"left$i"
+        val rv = s"right$i"
+        s"(let (($lv ${convert(left)}) ($rv ${convert(right)})) (ite (>= $lv $rv) (- $lv $rv) 0))"
+      else
+        s"(- ${convert(left)} ${convert(right)})"
     case IPair(left, right) => s"(pair ${convert(left)} ${convert(right)})"
     case ILeft(value) => s"(fst ${convert(value)})"
     case IRight(value) => s"(snd ${convert(value)})"
@@ -29,8 +36,21 @@ object SMTLIBGenerator {
     case IPFalse => "false"
   }
 
-  private def declareVariable(indexVariable: IndexVariable): String =
-    s"(declare-const ${convert(indexVariable)} ${convert(indexVariable.sort)})"
+  private def markNatural(sort: Sort, term: String): List[String] = sort match {
+    case SBool => List.empty
+    case SNat => List(s"(assert (>= $term 0))")
+    case SInt => List.empty
+    case SProd(left, right) =>
+      // TODO performance of returning lists?
+      markNatural(left, s"(fst $term)") ++ markNatural(right, s"(snd $term)")
+  }
+
+  private def declareVariable(indexVariable: IndexVariable): List[String] = {
+    val variable = convert(indexVariable)
+    val sort = indexVariable.sort
+    val decl = s"(declare-const $variable ${convert(sort)})"
+    decl +: markNatural(sort, variable)
+  }
 
   private def assert(proposition: Proposition): String =
     s"(assert ${convert(proposition)})"
@@ -41,7 +61,7 @@ object SMTLIBGenerator {
     val out = ListBuffer[String]()
 
     out.addOne("(declare-datatypes ((Pair 2)) ((par (X Y) ((pair (fst X) (snd Y))))))")
-    out.addAll(ctx.idxVars.map(declareVariable))
+    out.addAll(ctx.idxVars.toSeq.flatMap(declareVariable))
     out.addAll(ctx.propositions.map(assert))
     out.addOne("(check-sat)")
 

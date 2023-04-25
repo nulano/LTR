@@ -36,6 +36,20 @@ object Main {
         |                }
         |let oneagain = pred(two)
         |
+        |def predwithclamp : ∀b : ℕ . (nat(b) → ↑nat((b - 1)))
+        |         = λx . match x {
+        |                  into(y) ⇒ match y {
+        |                    inj₁ u ⇒ return x
+        |                  ‖ inj₂ z ⇒ match z {
+        |                               <w, u> ⇒ return w
+        |                             }
+        |                  }
+        |                }
+        |let zeroagain = predwithclamp(zero)
+        |def hideindex : ∀b : ℕ . (nat(b) → ↑∃c : ℕ . (nat(c) ∧ [(b = c)]))
+        |              = λx . return x
+        |let zeroh = hideindex(zeroagain)
+        |
         |def addtwo : ∀b : ℕ .
         |             (nat(b) → ↑nat((2 + b)))
         |           = λx . let y = succ(x); let z = succ(y); return z
