@@ -28,7 +28,7 @@ object Main {
         |           (nat(b) → ↑nat((b - 1)))
         |         = λx . match x {
         |                  into(y) ⇒ match y {
-        |                    inj₁ u ⇒ return x    -- unreachable; (1 ≤ 0) ⊨ (b = (b - 1))
+        |                    inj₁ u ⇒ unreachable
         |                  ‖ inj₂ z ⇒ match z {
         |                               <w, u> ⇒ return w
         |                             }

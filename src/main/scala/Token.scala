@@ -8,6 +8,7 @@ enum Tk(val text: String):
   case Def extends Tk("def")
   case Alg extends Tk("alg")
   case Type extends Tk("type")
+  case Unreachable extends Tk("unreachable")
   case Inl extends Tk("inl")
   case Inr extends Tk("inr")
   case PLeft extends Tk("π₁")
@@ -69,6 +70,7 @@ object Tk {
     case "def" => Def
     case "alg" => Alg
     case "type" => Type
+    case "unreachable" => Unreachable
     case "inl" | "inj1" | "inj₁" => Inl
     case "inr" | "inj2" | "inj₂" => Inr
     case "L" | "π1" | "π₁" => PLeft

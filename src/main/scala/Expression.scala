@@ -30,6 +30,7 @@ object Expression extends Parseable[Expression] {
         pc.pop(Tk.Dot)
         val body = Expression.parse(pc)
         ExpRecursive(variable, tp, body)(tok)
+      case Tk.Unreachable => ExpUnreachable
       case _ => throw UnexpectedTokenParseException(tok, "an expression")
     }
   }
@@ -68,6 +69,9 @@ object Expression extends Parseable[Expression] {
         val cond = IPAnd(IPLessEqual(temp, IVariable(rtv)), IPNot(IPEqual(temp, IVariable(rtv))))  // TODO extend syntax?
         val rct = PSuspended(NForAll(temp.variable, NPrecondition(cond, (temp / rtv)(rtt))))
         checkType(rb, rtt)(ctx2 + rtv, vars + ((rv, rct)))
+      case (ExpUnreachable, _) =>
+        if !Z3.unsat(ctx) then
+          throw TypeException(s"expression is reachable, failed to verify $ctx ⊨ F")
       case _ => throw TypeException(s"expression does not match type: $expression ⇐ $tp")
   }
 }
@@ -86,6 +90,9 @@ case class ExpFunction(variable: String, body: Expression)(val token: Token) ext
 }
 case class ExpRecursive(variable: String, tp: NType, body: Expression)(val token: Token) extends Expression {
   override def toString: String = s"rec $variable : $tp . $body"
+}
+object ExpUnreachable extends Expression {
+  override def toString: String = "unreachable"
 }
 
 // TODO maybe rename? encapsulates all clauses of a match block
