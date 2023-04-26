@@ -56,12 +56,15 @@ class ParserTest extends AnyFreeSpec {
   }
 
   roundtrip[ValVariable](Value, "foo")
+  roundtrip[ValVariable](Value, "fooBar")
+  roundtrip[ValVariable](Value, "foo_Bar42_X")
   parseTo[ValUnit](Value, " < \t\r\n   > ", "<>")
   parseTo[ValPair](Value, "  < foo  ,bar\t>", "<foo, bar>")
   parseTo[ValLeft](Value, "inj1\nfoo", "inl foo")
   parseTo[ValRight](Value, "inj₂  bar", "inr bar")
   parseTo[ValInto](Value, "into ( baz )", "into(baz)")
   parseTo[ValExpression](Value, "{  return hello  }", "{return hello}")
+  raise(Value, "HI", "unexpected 'H' (expecting a value)")
   raise(Value, "<", "unexpected '<end-of-file>' (expecting a value)")
   raise(Value, "return <>", "unexpected 'return' (expecting a value)")
 
@@ -156,8 +159,8 @@ class ParserTest extends AnyFreeSpec {
   parseTo[IPAnd](Proposition, "( T&F )", "(T ∧ F)")
   parseTo[IPOr](Proposition, "( (1=a)|(a<=2) )", "((1 = a) ∨ (a ≤ 2))", indexVars = List(new IVBound("a", SInt)))
   roundtrip[IPNot](Proposition, "¬F")
-  roundtrip[IPTrue.type](Proposition, "T")
-  roundtrip[IPFalse.type](Proposition, "F")
+  parseTo[IPTrue.type](Proposition, "⊤", "T") // TODO reverse this
+  parseTo[IPFalse.type](Proposition, "⊥", "F") // TODO reverse this
   raise(Index, "<>", "unexpected '<' (expecting an index term)")
   raise(Proposition, "foo", "not a proposition", indexVars = List(new IVBound("foo", SNat)))
   raise(Index, "(5∧F)", "not a proposition")

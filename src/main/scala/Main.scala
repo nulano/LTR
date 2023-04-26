@@ -22,7 +22,7 @@ object Main {
         |          = λx . let y = succ(x); return y
         |let onee = succe(zero)
         |let twoe = succe(onee)
-        |let twotest = (let i = succe(zero); let j = succe(i); return j : ↑nat(2))  -- demonstrated error in extraction, TODO test
+        |let two_test = (let i = succe(zero); let j = succe(i); return j : ↑nat(2))  -- demonstrated error in extraction, TODO test
         |
         |def pred : ∀b : ℕ . [(1 ≤ b)] ⊃
         |           (nat(b) → ↑nat((b - 1)))
@@ -34,10 +34,10 @@ object Main {
         |                             }
         |                  }
         |                }
-        |let oneagain = pred(two)
+        |let one_again = pred(two)
         |
-        |def predwithclamp : ∀b : ℕ . (nat(b) → ↑nat((b - 1)))
-        |         = λx . match x {
+        |def pred_with_clamp : ∀b : ℕ . (nat(b) → ↑nat((b - 1)))
+        |                    = λx . match x {
         |                  into(y) ⇒ match y {
         |                    inj₁ u ⇒ return x
         |                  ‖ inj₂ z ⇒ match z {
@@ -45,30 +45,30 @@ object Main {
         |                             }
         |                  }
         |                }
-        |let zeroagain = predwithclamp(zero)
-        |def hideindex : ∀b : ℕ . (nat(b) → ↑∃c : ℕ . (nat(c) ∧ [(b = c)]))
-        |              = λx . return x
-        |let zeroh = hideindex(zeroagain)
+        |let zero_again = pred_with_clamp(zero)
+        |def hide_index : ∀b : ℕ . (nat(b) → ↑∃c : ℕ . (nat(c) ∧ [(b = c)]))
+        |               = λx . return x
+        |let zeroh = hide_index(zero_again)
         |
-        |def addtwo : ∀b : ℕ .
-        |             (nat(b) → ↑nat((2 + b)))
-        |           = λx . let y = succ(x); let z = succ(y); return z
-        |let twoagain = addtwo(zero)
+        |def add_two : ∀b : ℕ .
+        |              (nat(b) → ↑nat((2 + b)))
+        |            = λx . let y = succ(x); let z = succ(y); return z
+        |let two_again = add_two(zero)
         |
         |rec sum : ∀b : ℕ . ∀c : ℕ .
         |          (nat(b) → (nat(c) → ↑nat((b + c))))
         |        = λx . λy . match x {
         |            into(xx) ⇒ match xx {
         |              inj₁ u ⇒ return y
-        |            ‖ inj₂ xminusoneandunit ⇒ match xminusoneandunit {
-        |                <xminusone, u> ⇒
-        |                  let recv = sum(xminusone, y);
+        |            ‖ inj₂ x_minus_one_and_unit ⇒ match x_minus_one_and_unit {
+        |                <x_minus_one, u> ⇒
+        |                  let recv = sum(x_minus_one, y);
         |                  let out = succ(recv);
         |                  return out
         |              }
         |            }
         |          }
-        |let four = sum(two, twoagain)
+        |let four = sum(two, two_again)
         |
         |def double : ∀b : ℕ . (nat(b) → ↑nat((b + b))) = λx . let y = sum(x, x); return y
         |let eight = double(four)
@@ -82,10 +82,10 @@ object Main {
         |        = λx . λy . match x {
         |            into(xx) ⇒ match xx {
         |              inj₁ u ⇒ return y
-        |            ‖ inj₂ xminusoneandunit ⇒ match xminusoneandunit {
-        |                <xminusone, u> ⇒
-        |                  let yminusone = pred(y);
-        |                  let out = sub(xminusone, yminusone);
+        |            ‖ inj₂ x_minus_one_and_unit ⇒ match x_minus_one_and_unit {
+        |                <x_minus_one, u> ⇒
+        |                  let y_minus_one = pred(y);
+        |                  let out = sub(x_minus_one, y_minus_one);
         |                  return out
         |              }
         |            }

@@ -98,8 +98,8 @@ object Index extends Parseable[Index] {
   override def parse(pc: ParseContext): Index = {
     val tok = pc.pop()
     tok.tk match {
-      case Tk.Var if tok.text == "T" => IPTrue
-      case Tk.Var if tok.text == "F" => IPFalse
+      case Tk.Top => IPTrue
+      case Tk.Bottom => IPFalse
       case Tk.Var => IVariable(pc.getIndexVar(tok))
       case Tk.Number => INatConstant(tok.text.toInt)
       case Tk.Plus => IIntConstant(pc.pop(Tk.Number).text.toInt)

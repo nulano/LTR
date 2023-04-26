@@ -50,17 +50,20 @@ enum Tk(val text: String):
   case ForAll extends Tk("∀")
   case Exists extends Tk("∃")
   case Superset extends Tk("⊃")
+  case Top extends Tk("⊤")
+  case Bottom extends Tk("⊥")
   case Boolean extends Tk("𝔹")
   case Natural extends Tk("ℕ")
   case Integer extends Tk("ℤ")
   case Comment extends Tk("<COMMENT>")
   case Number extends Tk("<NUM>")
   case Var extends Tk("<VAR>")
+  case Invalid extends Tk("<INVALID>")
   case EOF extends Tk("<EOF>")
 
 object Tk {
   private val numberRegex = new Regex("^[0-9]+$")
-  val regex = new Regex(raw"[ \t\r\n]*+((?:inj|π)[12₁₂]|Id|\([+×X]\)|<=|->|=>|\|\||--|[0-9]++|[a-z]++|.)", "token")
+  val regex = new Regex(raw"[ \t\r\n]*+((?:inj|π)[12₁₂]|Id|\([+×X]\)|<=|->|=>|\|\||--|[0-9]++|[a-z][a-zA-Z0-9_]*+|.)", "token")
 
   def get(text: String): Tk = text match {
     case "return" => Return
@@ -112,11 +115,14 @@ object Tk {
     case "∀" | "A" => ForAll
     case "∃" | "E" => Exists
     case "⊃" | "S" => Superset
+    case "⊤" | "T" => Top
+    case "⊥" | "F" => Bottom
     case "𝔹" | "B" => Boolean
     case "ℕ" | "N" => Natural
     case "ℤ" | "Z" => Integer
     case "--" | "#" => Comment
     case _ if numberRegex.matches(text) => Number
-    case _ => Var
+    case _ if ('a' <= text.charAt(0) && text.charAt(0) <= 'z') => Var
+    case _ => Invalid
   }
 }
