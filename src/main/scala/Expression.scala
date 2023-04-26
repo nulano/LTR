@@ -66,7 +66,7 @@ object Expression extends Parseable[Expression] {
       case (ExpRecursive(rv, NForAll(rtv, rtt), rb), _) if rtv.sort == SNat =>
         NType.subtype(NForAll(rtv, rtt), te)(ctx2.idxVars).check(ctx2)
         val temp = IVariable(new IVBound(rtv.name, SNat))
-        val cond = IPAnd(IPLessEqual(temp, IVariable(rtv)), IPNot(IPEqual(temp, IVariable(rtv))))  // TODO extend syntax?
+        val cond = IPLess(temp, IVariable(rtv))
         val rct = PSuspended(NForAll(temp.variable, NPrecondition(cond, (temp / rtv)(rtt))))
         checkType(rb, rtt)(ctx2 + rtv, vars + ((rv, rct)))
       case (ExpUnreachable, _) =>

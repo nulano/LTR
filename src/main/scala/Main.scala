@@ -24,7 +24,7 @@ object Main {
         |let twoe = succe(onee)
         |let two_test = (let i = succe(zero); let j = succe(i); return j : ↑nat(2))  -- demonstrated error in extraction, TODO test
         |
-        |def pred : ∀b : ℕ . [(1 ≤ b)] ⊃
+        |def pred : ∀b : ℕ . [(b > 0)] ⊃
         |           (nat(b) → ↑nat((b - 1)))
         |         = λx . match x {
         |                  into(y) ⇒ match y {

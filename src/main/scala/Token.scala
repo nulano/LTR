@@ -28,7 +28,9 @@ enum Tk(val text: String):
   case CPlus extends Tk("⊕")
   case CTimes extends Tk("⊗")
   case Eq extends Tk("=")
+  case Ne extends Tk("≠")
   case Leq extends Tk("≤")
+  case Geq extends Tk("≥")
   case LParen extends Tk("(")
   case RParen extends Tk(")")
   case LBrace extends Tk("{")
@@ -63,7 +65,7 @@ enum Tk(val text: String):
 
 object Tk {
   private val numberRegex = new Regex("^[0-9]+$")
-  val regex = new Regex(raw"[ \t\r\n]*+((?:inj|π)[12₁₂]|Id|\([+×X]\)|<=|->|=>|\|\||--|[0-9]++|[a-z][a-zA-Z0-9_]*+|.)", "token")
+  val regex = new Regex(raw"[ \t\r\n]*+((?:inj|π)[12₁₂]|Id|\([+×X]\)|[<>!]=|[-=]>|\|\||--|[0-9]++|[a-z][a-zA-Z0-9_]*+|.)", "token")
 
   def get(text: String): Tk = text match {
     case "return" => Return
@@ -93,7 +95,9 @@ object Tk {
     case "⊕" | "(+)" => CPlus
     case "⊗" | "(×)" | "(X)" => CTimes
     case "=" => Eq
+    case "≠" | "!=" => Ne
     case "≤" | "<=" => Leq
+    case "≥" | ">=" => Geq
     case "(" => LParen
     case ")" => RParen
     case "{" => LBrace

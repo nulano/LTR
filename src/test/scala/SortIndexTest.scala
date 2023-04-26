@@ -98,15 +98,19 @@ class SortIndexTest extends AnyFreeSpec {
   Set("a : ℕ", "b : ℤ") |/- "(a = b)" :: "sort mismatch: ℕ = ℤ"
   Set("a : ℤ", "b : ℕ") |/- "(a = b)" :: "sort mismatch: ℤ = ℕ"
   Set("a : (𝔹 × ℤ)", "b : (𝔹 × ℤ)") |- "(a = b)" :: SBool
+  Set("a : (𝔹 × ℤ)", "b : (𝔹 × ℤ)") |- "(a ≠ b)" :: SBool
   Set("a : (𝔹 × ℤ)", "b : (𝔹 × ℕ)") |/- "(a = b)" :: "sort mismatch: (𝔹 × ℤ) = (𝔹 × ℕ)"
 
   // AlgIx≤
+  Set("a : ℕ", "b : ℕ") |- "(a < b)" :: SBool
   Set("a : ℕ", "b : ℕ") |- "(a ≤ b)" :: SBool
+  Set("a : ℕ", "b : ℕ") |- "(a > b)" :: SBool
+  Set("a : ℕ", "b : ℕ") |- "(a ≥ b)" :: SBool
   Set("a : ℤ", "b : ℤ") |- "(a ≤ b)" :: SBool
   Set("a : ℕ", "b : ℤ") |/- "(a ≤ b)" :: "sort mismatch: ℕ ≤ ℤ"
   Set("a : ℤ", "b : ℕ") |/- "(a ≤ b)" :: "sort mismatch: ℤ ≤ ℕ"
-  Set("a : 𝔹", "b : 𝔹") |/- "(a ≤ b)" :: "can't perform comparison on 𝔹"
-  Set("a : (𝔹 × ℤ)", "b : (𝔹 × ℤ)") |/- "(a ≤ b)" :: "can't perform comparison on (𝔹 × ℤ)"
+  Set("a : 𝔹", "b : 𝔹") |/- "(a ≤ b)" :: "can't perform numeric comparison on 𝔹"
+  Set("a : (𝔹 × ℤ)", "b : (𝔹 × ℤ)") |/- "(a ≤ b)" :: "can't perform numeric comparison on (𝔹 × ℤ)"
 
   // AlgIx{∧,∨,¬}
   Set("a : ℕ", "b : ℕ") |- "¬(a = b)" :: SBool

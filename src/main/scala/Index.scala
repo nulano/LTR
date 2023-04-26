@@ -109,7 +109,7 @@ object Index extends Parseable[Index] {
       case Tk.Not => IPNot(Proposition.parse(pc))
       case Tk.LParen =>
         val left = Index.parse(pc)
-        val op = pc.pop(Tk.Plus, Tk.Minus, Tk.Comma, Tk.Eq, Tk.Leq, Tk.And, Tk.Or).tk
+        val op = pc.pop(Tk.Plus, Tk.Minus, Tk.Comma, Tk.Eq, Tk.Ne, Tk.LAngle, Tk.RAngle, Tk.Leq, Tk.Geq, Tk.And, Tk.Or).tk
         val right = Index.parse(pc)
         pc.pop(Tk.RParen)
         op match {
@@ -117,7 +117,11 @@ object Index extends Parseable[Index] {
           case Tk.Minus => IDifference(left, right)
           case Tk.Comma => IPair(left, right)
           case Tk.Eq => IPEqual(left, right)
+          case Tk.Ne => IPNotEqual(left, right)
+          case Tk.LAngle => IPLess(left, right)
+          case Tk.RAngle => IPGreater(left, right)
           case Tk.Leq => IPLessEqual(left, right)
+          case Tk.Geq => IPGreaterEqual(left, right)
           case Tk.And | Tk.Or =>
             (left, right) match {
               case (lp: Proposition, rp: Proposition) =>
@@ -262,41 +266,43 @@ case class IRight(value: Index) extends IndexBase[IRight] {
 
   override def norm: IRight = IRight(value.norm)
 }
-case class IPEqual(left: Index, right: Index) extends PropositionBase[IPEqual] {
-  override def toString: String = s"($left = $right)"
+private sealed trait IPBinary[T <: IPBinary[T]] extends PropositionBase[T] {
+  val left: Index
+  val right: Index
+  val op: String
+
+  def copy(left: Index, right: Index): T
+
+  override def toString: String = s"($left $op $right)"
 
   // Ix=
   override def checkCanSort(ctx: IndexVariable => Boolean): Unit = {
     val ls = left.sort(ctx)
     val rs = right.sort(ctx)
     if ls != rs then
-      throw SortException(this, s"sort mismatch: $ls = $rs")
+      throw SortException(this, s"sort mismatch: $ls $op $rs")
   }
 
-  override def substituteIndex(replacement: Index, target: IndexVariable): IPEqual =
-    IPEqual((replacement / target)(left), (replacement / target)(right))
+  override def substituteIndex(replacement: Index, target: IndexVariable): T =
+    copy((replacement / target)(left), (replacement / target)(right))
 
-  override def norm: IPEqual = IPEqual(left.norm, right.norm)
+  override def norm: T = copy(left.norm, right.norm)
 }
-case class IPLessEqual(left: Index, right: Index) extends PropositionBase[IPLessEqual] {
-  override def toString: String = s"($left ≤ $right)"
-
+private sealed trait IPNumeric[T <: IPNumeric[T]] extends IPBinary[T] {
   // Ix≤
   override def checkCanSort(ctx: IndexVariable => Boolean): Unit = {
-    val ls = left.sort(ctx)
-    val rs = right.sort(ctx)
-    if ls != rs then
-      throw SortException(this, s"sort mismatch: $ls ≤ $rs")
-    ls match
-      case SNat | SInt => ()
-      case _ => throw SortException(this, s"can't perform comparison on $ls")
+    // TODO avoid checking sort twice - exponential behaviour
+    left.sort(ctx) match
+      case SNat | SInt => super.checkCanSort(ctx)
+      case ls => throw SortException(this, s"can't perform numeric comparison on $ls")
   }
-
-  override def substituteIndex(replacement: Index, target: IndexVariable): IPLessEqual =
-    IPLessEqual((replacement / target)(left), (replacement / target)(right))
-
-  override def norm: IPLessEqual = IPLessEqual(left.norm, right.norm)
 }
+case class IPEqual(left: Index, right: Index) extends IPBinary[IPEqual] { val op: String = "=" }
+case class IPNotEqual(left: Index, right: Index) extends IPBinary[IPNotEqual] { val op: String = "≠" }
+case class IPLess(left: Index, right: Index) extends IPNumeric[IPLess] { val op: String = "<" }
+case class IPLessEqual(left: Index, right: Index) extends IPNumeric[IPLessEqual] { val op: String = "≤" }
+case class IPGreater(left: Index, right: Index) extends IPNumeric[IPGreater] { val op: String = ">" }
+case class IPGreaterEqual(left: Index, right: Index) extends IPNumeric[IPGreaterEqual] { val op: String = "≥" }
 case class IPAnd(left: Proposition, right: Proposition) extends PropositionBase[IPAnd] {
   override def toString: String = s"($left ∧ $right)"
 
