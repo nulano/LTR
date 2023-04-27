@@ -79,6 +79,26 @@ object Z3 {
   private val processInput = process.getOutputStream
   private val processOutput = new BufferedReader(new InputStreamReader(process.getInputStream))
 
+  private def assertUnsat(ctx: LogicCtx, statement: String): Unit = {
+    if !unsat(ctx) then
+      throw TypeException(s"failed to verify: $statement")
+    else
+      System.err.println(s"Z3 verified: $statement")  // DEBUG
+  }
+
+  def assert(ctx: LogicCtx, proposition: Proposition): Unit = {
+    if proposition != IPTrue then
+      assertUnsat(ctx + IPNot(proposition), s"$ctx ⊨ $proposition")
+  }
+
+  def assertEqual(ctx: LogicCtx, left: Proposition, right: Proposition): Unit = {
+    // left == right is commonly generated when passing argument to ∀ function
+    if left != right then
+      assertUnsat(ctx + IPNotEqual(left, right), s"$ctx ⊨ $left ≡ $right")
+  }
+
+  def assertUnsat(ctx: LogicCtx): Unit = assertUnsat(ctx, s"$ctx ⊨ F")
+
   /**
    * Check that ctx is unsatisfiable, i.e. that its negation is valid.
    * @param ctx the logic context to check

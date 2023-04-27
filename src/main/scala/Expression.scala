@@ -70,8 +70,7 @@ object Expression extends Parseable[Expression] {
         val rct = PSuspended(NForAll(temp.variable, NPrecondition(cond, (temp / rtv)(rtt))))
         checkType(rb, rtt)(ctx2 + rtv, vars + ((rv, rct)))
       case (ExpUnreachable, _) =>
-        if !Z3.unsat(ctx) then
-          throw TypeException(s"expression is reachable, failed to verify $ctx ⊨ F")
+        Z3.assertUnsat(ctx)
       case _ => throw TypeException(s"expression does not match type: $expression ⇐ $tp")
   }
 }
