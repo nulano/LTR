@@ -72,7 +72,7 @@ object Value extends Parseable[Value] {
         SCProposition(p) +: out
       // Alg⇐Var
       case (ValVariable(v), _) =>
-        val t = vars(v)
+        val t = vars.getOrElse(v, throw TypeException(s"unbound variable $v"))
         List(PType.subtype(t, tp)(ctx))
       // Alg⇐1
       case (ValUnit(), PUnit) => List.empty
