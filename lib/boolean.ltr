@@ -1,0 +1,21 @@
+type bool = (1 + 1)
+let false = (return inj₁ <> : ↑bool)
+let true = (return inj₂ <> : ↑bool)
+
+def bool_not : (bool → ↑bool)
+             = λx . match x {
+               inj₁ f ⇒ return true
+             ‖ inj₂ t ⇒ return false
+             }
+
+def bool_and : (bool → (bool → ↑bool))
+             = λx . λy . match x {
+               inj₁ f ⇒ return false
+             ‖ inj₂ t ⇒ return y
+             }
+
+def bool_or : (bool → (bool → ↑bool))
+            = λx . λy . match x {
+              inj₁ f ⇒ return y
+            ‖ inj₂ t ⇒ return true
+            }

@@ -1,3 +1,5 @@
+import scala.annotation.tailrec
+
 object Main {
 
   def main(args: Array[String]): Unit = {
@@ -95,7 +97,7 @@ object Main {
 
     val repl = new REPL()
     val reader = input.split('\n').iterator ++ StdInReader
-    val parser = new Parser("<stdin>", reader)
+    val parser = new Parser("<stdin>", new FileLoader(reader))
     while parser.peek().tk != Tk.EOF do {
       try
         val cmd = REPLCommand.parse(repl.makeParseContext(parser))
@@ -118,5 +120,36 @@ object StdInReader extends Iterator[String] {
     if line == null then
       throw new NoSuchElementException()
     else line
+  }
+}
+
+final class FileLoader(val wrapped: Iterator[String]) extends Iterator[String] {
+  private var child: Option[Iterator[String]] = None
+
+  override def hasNext: Boolean = child.map(_.hasNext).getOrElse(wrapped.hasNext)
+
+  @tailrec
+  override def next(): String = {
+    val c = try
+      child.map(_.next)
+    catch
+      case _: NoSuchElementException =>
+        None
+    c match
+      case Some(value) => value
+      case None =>
+        val l = wrapped.next()
+        if l.startsWith("!!") then
+          val file = new java.io.File(l.substring(2))
+          if !file.isFile then
+            throw new RuntimeException(s"file not found: $file")
+          val source = scala.io.Source.fromFile(file, "utf-8")
+          try
+            val text = source.mkString
+            child = Some(new FileLoader(text.split(raw"\n\r?").iterator))
+          finally
+            source.close()
+          next()
+        else l
   }
 }
