@@ -93,10 +93,9 @@ object Z3 {
   processInput.write("(set-option :timeout 1000)\n".getBytes)
 
   private def assertUnsat(ctx: LogicCtx, statement: String): Unit = {
+    System.err.println(s"Z3 checking: $statement")  // DEBUG
     if !unsat(ctx) then
       throw TypeException(s"failed to verify: $statement")
-    else
-      System.err.println(s"Z3 verified: $statement")  // DEBUG
   }
 
   def assert(ctx: LogicCtx, proposition: Proposition): Unit = {

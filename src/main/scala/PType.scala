@@ -139,7 +139,9 @@ object PType extends Parseable[PType], TypeEquality[PType], TypeSubtype[PType] {
       // <:⁺/⊣↓
       case (PSuspended(l), PSuspended(r)) =>
         val (re, ctx) = r.extract
-        ctx.propositions.foldRight(SCNSubtype(l, re))(SCPrecondition.apply)
+        val w1 = ctx.propositions.foldRight(SCNSubtype(l, re))(SCPrecondition.apply)
+        // TODO this is unclear in the type rules - should SCForAll be used?
+        ctx.idxVars.foldRight(w1)(SCForAll.apply)
       case _ => throw TypeException(s"positive types are not subtypes: $left </: $right")
   }
 }

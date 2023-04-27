@@ -18,3 +18,24 @@ def list_tail : ∀l : ℕ . [(l ≥ 1)] ⊃ (list(l) → ↑list((l - 1)))
                   inj₁ u ⇒ unreachable
                 ‖ inj₂ p ⇒ match p { <x, xsu> ⇒ match xsu { <xs, u> ⇒ return xs }}
                 }}
+
+rec list_idx : ∀l : ℕ . ∀i : ℕ . [(i < l)] ⊃ (list(l) → (nat(i) → ↑∃j : ℕ . nat(j)))
+             = λl . λidx . match idx { into(ii) ⇒ match ii {
+                 inj₁ u ⇒
+                   let head = list_head(l);
+                   return head
+               ‖ inj₂ pair ⇒ match pair { <idx_pred, u> ⇒
+                   let tail = list_tail(l);
+                   let result = list_idx(tail, idx_pred);
+                   return result
+               }}}
+
+rec list_len : ∀l : ℕ . (list(l) → ↑nat(l))
+             = λl . match l { into(ll) ⇒ match ll {
+                 inj₁ u ⇒ return nat_0
+               ‖ inj₂ p ⇒
+                   let tail = list_tail(l);
+                   let tail_len = list_len(tail);
+                   let result = nat_succ(tail_len);
+                   return result
+               }}

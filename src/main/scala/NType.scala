@@ -57,7 +57,9 @@ object NType extends Parseable[NType], TypeEquality[NType], TypeSubtype[NType] {
       // <:⁻/⊣↑
       case (NComputation(l), NComputation(r)) =>
         val (le, lc) = l.extract
-        lc.propositions.foldRight(SCPSubtype(le, r))(SCPrecondition.apply)
+        val w1 = lc.propositions.foldRight(SCPSubtype(le, r))(SCPrecondition.apply)
+        // TODO this is unclear in the type rules - should SCForAll be used?
+        lc.idxVars.foldRight(w1)(SCForAll.apply)
       // <:⁻/⊣⊃L
       case (NPrecondition(lp, lt), _) =>
         val w1 = NType.subtype(lt, right)(ctx)
@@ -69,7 +71,7 @@ object NType extends Parseable[NType], TypeEquality[NType], TypeSubtype[NType] {
         val w = NType.subtype((IVariable(temp) / lv)(lt), right)(ctx + temp)
         if temp.solution.isEmpty then
           throw TypeException(s"failed to determine algorithmic variable $temp")
-        else SCForAll(temp.variable, w)
+        else w
       // <:⁻/⊣→
       case (NFunction(la, lb), NFunction(ra, rb)) =>
         val w1 = PType.subtype(ra, la)(ctx)
