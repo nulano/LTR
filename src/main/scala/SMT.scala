@@ -25,6 +25,17 @@ object SMTLIBGenerator {
         s"(let (($lv ${convert(left)}) ($rv ${convert(right)})) (ite (>= $lv $rv) (- $lv $rv) 0))"
       else
         s"(- ${convert(left)} ${convert(right)})"
+    case IProduct(left, right) => s"(* ${convert(left)} ${convert(right)})"
+    case IDivision(left, right) =>
+      val i = IndexVariableCounter.next
+      val rv = s"right$i"
+      // TODO returns 0 if divisor is 0
+      s"(let (($rv ${convert(right)})) (ite (= $rv 0) 0 (div ${convert(left)} $rv)))"
+    case IRemainder(left, right) =>
+      val i = IndexVariableCounter.next
+      val rv = s"right$i"
+      // TODO returns 0 if divisor is 0
+      s"(let (($rv ${convert(right)})) (ite (= $rv 0) 0 (mod ${convert(left)} $rv)))"
     case IPair(left, right) => s"(pair ${convert(left)} ${convert(right)})"
     case ILeft(value) => s"(fst ${convert(value)})"
     case IRight(value) => s"(snd ${convert(value)})"
@@ -78,6 +89,8 @@ object Z3 {
   private val process = new ProcessBuilder("z3", "-in").start()
   private val processInput = process.getOutputStream
   private val processOutput = new BufferedReader(new InputStreamReader(process.getInputStream))
+
+  processInput.write("(set-option :timeout 1000)\n".getBytes)
 
   private def assertUnsat(ctx: LogicCtx, statement: String): Unit = {
     if !unsat(ctx) then

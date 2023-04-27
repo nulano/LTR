@@ -73,14 +73,14 @@ class SortIndexTest extends AnyFreeSpec {
   Set("a : ℤ", "b : ℤ") |- "(a + b)" :: SInt
   Set("a : ℕ", "b : ℤ") |/- "(a + b)" :: "sort mismatch: ℕ + ℤ"
   Set("a : ℤ", "b : ℕ") |/- "(a + b)" :: "sort mismatch: ℤ + ℕ"
-  Set("a : 𝔹", "b : 𝔹") |/- "(a + b)" :: "can't perform addition on 𝔹"
+  Set("a : 𝔹", "b : 𝔹") |/- "(a + b)" :: "can't perform + on 𝔹"
 
   // AlgIxSubtract
   Set("a : ℕ", "b : ℕ") |- "(a - b)" :: SNat
   Set("a : ℤ", "b : ℤ") |- "(a - b)" :: SInt
   Set("a : ℕ", "b : ℤ") |/- "(a - b)" :: "sort mismatch: ℕ - ℤ"
   Set("a : ℤ", "b : ℕ") |/- "(a - b)" :: "sort mismatch: ℤ - ℕ"
-  Set("a : 𝔹", "b : 𝔹") |/- "(a - b)" :: "can't perform subtraction on 𝔹"
+  Set("a : 𝔹", "b : 𝔹") |/- "(a - b)" :: "can't perform - on 𝔹"
 
   // AlgIxProd
   Set("a : ℕ", "b : ℤ") |- "(a, b)" :: SProd(SNat, SInt)

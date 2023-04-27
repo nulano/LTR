@@ -17,6 +17,10 @@ enum Tk(val text: String):
   case Pack extends Tk("pack")
   case I extends Tk("I")
   case Id extends Tk("Id")
+// TODO
+//  case Min extends Tk("min")
+//  case Max extends Tk("max")
+//  case Abs extends Tk("abs")
   case Underscore extends Tk("_")
   case Dot extends Tk(".")
   case Comma extends Tk(",")
@@ -24,6 +28,9 @@ enum Tk(val text: String):
   case Semicolon extends Tk(";")
   case Plus extends Tk("+")
   case Minus extends Tk("-")
+  case Star extends Tk("*")
+  case Slash extends Tk("/")
+  case Percent extends Tk("%")
   case Times extends Tk("×")
   case CPlus extends Tk("⊕")
   case CTimes extends Tk("⊗")
@@ -84,6 +91,10 @@ object Tk {
     case "pack" => Pack
     case "I" => I
     case "Id" | "id" => Id
+// TODO
+//    case "min" => Min
+//    case "max" => Max
+//    case "abs" => Abs
     case "_" => Underscore
     case "." => Dot
     case "," => Comma
@@ -91,6 +102,9 @@ object Tk {
     case ";" => Semicolon
     case "+" => Plus
     case "-" => Minus
+    case "*" => Star
+    case "/" => Slash
+    case "%" => Percent
     case "×" | "X" => Times
     case "⊕" | "(+)" => CPlus
     case "⊗" | "(×)" | "(X)" => CTimes

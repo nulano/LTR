@@ -79,3 +79,25 @@ rec nat_sub : ∀i : ℕ . ∀j : ℕ . [(i ≥ j)] ⊃ (nat(i) → (nat(j) → 
                   let result = nat_sub(x_pred, y_pred);
                   return result
               }}}
+
+rec nat_div : ∀i : ℕ . ∀j : ℕ . [(j ≥ 1)] ⊃ (nat(i) → (nat(j) → ↑nat((i / j))))
+            = λx . λy .
+              let ge = nat_ge(x, y); match ge {
+                inj₁ f ⇒ return nat_0
+              ‖ inj₂ t ⇒
+                  let x_minus_y = nat_sub(x, y);
+                  let result_pred = nat_div(x_minus_y, y);
+                  let result = nat_succ(result_pred);
+                  return result
+              }
+
+-- timeout on: (j₂₀₀ : ℕ, i₁₉₉ : ℕ, i₁₉₄ : ℕ, j₂₀₆ : ℕ, (j₂₀₀ ≥ 1), (j₂₀₆ ≥ 1), ((i₁₉₄ ≥ j₂₀₆) = T)) ⊨ (((i₁₉₄ - j₂₀₆) % j₂₀₆) = (i₁₉₄ % j₂₀₆))
+-- rec nat_mod : ∀i : ℕ . ∀j : ℕ . [(j ≥ 1)] ⊃ (nat(i) → (nat(j) → ↑nat((i % j))))
+--             = λx . λy .
+--               let ge = nat_ge(x, y); match ge {
+--                 inj₁ f ⇒ return x
+--               ‖ inj₂ t ⇒
+--                   let x_minus_y = nat_sub(x, y);
+--                   let result = nat_mod(x_minus_y, y);
+--                   return result
+--               }

@@ -109,12 +109,16 @@ object Index extends Parseable[Index] {
       case Tk.Not => IPNot(Proposition.parse(pc))
       case Tk.LParen =>
         val left = Index.parse(pc)
-        val op = pc.pop(Tk.Plus, Tk.Minus, Tk.Comma, Tk.Eq, Tk.Ne, Tk.LAngle, Tk.RAngle, Tk.Leq, Tk.Geq, Tk.And, Tk.Or).tk
+        val op = pc.pop(Tk.Plus, Tk.Minus, Tk.Star, Tk.Slash, Tk.Percent, Tk.Comma,
+                        Tk.Eq, Tk.Ne, Tk.LAngle, Tk.RAngle, Tk.Leq, Tk.Geq, Tk.And, Tk.Or).tk
         val right = Index.parse(pc)
         pc.pop(Tk.RParen)
         op match {
           case Tk.Plus => ISum(left, right)
           case Tk.Minus => IDifference(left, right)
+          case Tk.Star => IProduct(left, right)
+          case Tk.Slash => IDivision(left, right)
+          case Tk.Percent => IRemainder(left, right)
           case Tk.Comma => IPair(left, right)
           case Tk.Eq => IPEqual(left, right)
           case Tk.Ne => IPNotEqual(left, right)
@@ -186,44 +190,36 @@ case class IIntConstant(value: Int) extends IndexBase[IIntConstant] {
 
   override def norm: IIntConstant = this
 }
-case class ISum(left: Index, right: Index) extends IndexBase[ISum] {
-  override def toString: String = s"($left + $right)"
+private sealed trait INumeric[T <: INumeric[T]] extends IndexBase[T] {
+  val left: Index
+  val right: Index
+  val op: String
 
-  // IxAdd
+  def copy(left: Index, right: Index): T
+
+  override def toString: String = s"($left $op $right)"
+
+  // IxAdd, IxSubtract
   override def sort(ctx: IndexVariable => Boolean): Sort = {
     val ls = left.sort(ctx)
     val rs = right.sort(ctx)
     if ls != rs then
-      throw SortException(this, s"sort mismatch: $ls + $rs")
+      throw SortException(this, s"sort mismatch: $ls $op $rs")
     ls match
       case SNat | SInt => ls
-      case _ => throw SortException(this, s"can't perform addition on $ls")
+      case _ => throw SortException(this, s"can't perform $op on $ls")
   }
 
-  override def substituteIndex(replacement: Index, target: IndexVariable): ISum =
-    ISum((replacement / target)(left), (replacement / target)(right))
+  override def substituteIndex(replacement: Index, target: IndexVariable): T =
+    copy((replacement / target)(left), (replacement / target)(right))
 
-  override def norm: ISum = ISum(left.norm, right.norm)
+  override def norm: T = copy(left.norm, right.norm)
 }
-case class IDifference(left: Index, right: Index) extends IndexBase[IDifference] {
-  override def toString: String = s"($left - $right)"
-
-  // IxSubtract
-  override def sort(ctx: IndexVariable => Boolean): Sort = {
-    val ls = left.sort(ctx)
-    val rs = right.sort(ctx)
-    if ls != rs then
-      throw SortException(this, s"sort mismatch: $ls - $rs")
-    ls match
-      case SNat | SInt => ls
-      case _ => throw SortException(this, s"can't perform subtraction on $ls")
-  }
-
-  override def substituteIndex(replacement: Index, target: IndexVariable): IDifference =
-    IDifference((replacement / target)(left), (replacement / target)(right))
-
-  override def norm: IDifference = IDifference(left.norm, right.norm)
-}
+case class ISum(left: Index, right: Index) extends INumeric[ISum] { val op: String = "+" }
+case class IDifference(left: Index, right: Index) extends INumeric[IDifference] { val op: String = "-"}
+case class IProduct(left: Index, right: Index) extends INumeric[IProduct] { val op: String = "*" }
+case class IDivision(left: Index, right: Index) extends INumeric[IDivision] { val op: String = "/" }
+case class IRemainder(left: Index, right: Index) extends INumeric[IRemainder] { val op: String = "%" }
 case class IPair(left: Index, right: Index) extends IndexBase[IPair] {
   override def toString: String = s"($left, $right)"
 
