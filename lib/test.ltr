@@ -1,0 +1,11 @@
+!!lib/boolean.ltr
+!!lib/natural.ltr
+!!lib/list.ltr
+
+let nat_1 = nat_succ(nat_0)
+let nat_2 = nat_succ(nat_1)
+
+let mylist = (return list_nil : ↑list(0))
+let mylist = list_cons(nat_0, mylist)
+let mylist = list_cons(nat_1, mylist)
+let mylist = list_cons(nat_2, mylist)

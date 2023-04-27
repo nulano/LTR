@@ -36,13 +36,40 @@ rec nat_lt : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑bool((i < j)))
                  return result
              }}}
 
-rec nat_eq : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑bool((i = j))))
+def nat_le : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑bool((i ≤ j))))
+           = λwx . λwy .
+             let not_le = nat_lt(wy, wx);
+             let result = bool_not(into(not_le));
+             return result
+
+def nat_gt : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑bool((i > j))))
+           = λwx . λwy . let result = nat_lt(wy, wx); return result
+
+def nat_ge : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑bool((i ≥ j))))
+           = λwx . λwy . let result = nat_le(wy, wx); return result
+
+def nat_eq : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑bool((i = j))))
+           = λwx . λwy .
+             let le = nat_le(wx, wy);
+             let ge = nat_ge(wx, wy);
+             let result = bool_and(into(le), into(ge));
+             return result
+
+def nat_ne : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑bool((i ≠ j))))
            = λwx . λwy .
              let lt = nat_lt(wx, wy);
-             let gt = nat_lt(wy, wx);
-             let ne = bool_or(into(lt), into(gt));
-             let result = bool_not(into(ne));
+             let gt = nat_gt(wx, wy);
+             let result = bool_or(into(lt), into(gt));
              return result
+
+rec nat_add : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑nat((i + j))))
+            = λwx . λwy . match wx { into(x) ⇒ match x {
+                inj₁ u ⇒ return wy
+              ‖ inj₂ pair ⇒ match pair { <x_pred, u> ⇒
+                  let y_succ = nat_succ(wy);
+                  let result = nat_add(x_pred, y_succ);
+                  return result
+              }}}
 
 rec nat_sub : ∀i : ℕ . ∀j : ℕ . [(i ≥ j)] ⊃ (nat(i) → (nat(j) → ↑nat((i - j))))
             = λwx . λwy . match wy { into(y) ⇒ match y {

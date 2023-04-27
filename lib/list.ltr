@@ -1,0 +1,20 @@
+
+-- interesting: pack(...) unrolls into outer ∃ type, _ unrolls into inner ∃ type
+alg listlen = (inj₁ () ⇒ 0 ‖ inj₂ (_, (p, ())) ⇒ (p + 1))
+type list(l : ℕ) = μ(I ⊕ ([∃j : ℕ . nat(j)] ⊗ (Id ⊗ I))) ⊃ listlen ⇒ l
+
+let list_nil = (return into(inj₁ <>) : ↑list(0))
+def list_cons : ∀l : ℕ . ∀i : ℕ . (nat(i) → (list(l) → ↑list((l + 1))))
+              = λx . λxs . return into(inj₂ <x, <xs, <>>>)
+
+def list_head : ∀l : ℕ . [(l ≥ 1)] ⊃ (list(l) → ↑∃i : ℕ . nat(i))
+              = λl . match l { into(ll) ⇒ match ll {
+                  inj₁ u ⇒ unreachable
+                ‖ inj₂ p ⇒ match p { <x, xs> ⇒ return x }
+                }}
+
+def list_tail : ∀l : ℕ . [(l ≥ 1)] ⊃ (list(l) → ↑list((l - 1)))
+              = λl . match l { into(ll) ⇒ match ll {
+                  inj₁ u ⇒ unreachable
+                ‖ inj₂ p ⇒ match p { <x, xsu> ⇒ match xsu { <xs, u> ⇒ return xs }}
+                }}

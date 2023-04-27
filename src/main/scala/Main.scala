@@ -140,7 +140,7 @@ final class FileLoader(val wrapped: Iterator[String]) extends Iterator[String] {
       case None =>
         val l = wrapped.next()
         if l.startsWith("!!") then
-          val file = new java.io.File(l.substring(2))
+          val file = new java.io.File(l.substring(2).trim)
           if !file.isFile then
             throw new RuntimeException(s"file not found: $file")
           val source = scala.io.Source.fromFile(file, "utf-8")
