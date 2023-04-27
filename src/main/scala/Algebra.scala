@@ -4,7 +4,7 @@ import scala.collection.immutable.VectorBuilder
 trait Algebra extends SubstitutableIndex[Algebra] {
   def patterns: Iterable[(AlgebraSumPattern, Index)]
 
-  final override def toString(): String = {
+  override def toString(): String = {
     val body = patterns.map((p, t) => s"$p ⇒ $t").mkString(" ‖ ")
     s"($body)"
   }
@@ -27,6 +27,17 @@ case class AlgebraProd(pattern: AlgebraProductPattern, index: Index) extends Alg
     AlgebraProd(pattern, (replacement / target)(index))
 
   override def norm: AlgebraProd = AlgebraProd(pattern, index.norm)
+}
+
+case class AlgebraNamed(algebra: Algebra, name: String) extends Algebra, SubstitutableIndex[Algebra] {
+  override def patterns: Iterable[(AlgebraSumPattern, Index)] = algebra.patterns
+
+  override def substituteIndex(replacement: Index, target: IndexVariable): Algebra =
+    algebra.substituteIndex(replacement, target)
+
+  override def norm: Algebra = algebra.norm
+
+  override def toString(): String = name
 }
 
 object Algebra extends Parseable[Algebra] {
@@ -130,6 +141,8 @@ object Algebra extends Parseable[Algebra] {
                  functor: Functor,
                  sort: Sort): Unit =
     (algebra, functor) match {
+      case (AlgebraNamed(alg, _), fun) =>
+        wellFormed(valueDetermined, ctx, alg, fun, sort)
       // AlgAlg⊕
       case (AlgebraSum(la, ra), FSum(lf, rf)) =>
         wellFormed(valueDetermined, ctx, la, lf, sort)

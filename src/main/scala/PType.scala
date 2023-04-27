@@ -225,6 +225,7 @@ case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) exten
    */
   private def unroll(f: FunctorSum, a: Algebra): PType = {
     (f, a) match
+      case (fun, AlgebraNamed(alg, _)) => unroll(fun, alg)
       // AlgUnroll⊕
       case (FSum(fl, fr), AlgebraSum(al, ar)) =>
         PSum(unroll(fl, al), unroll(fr, ar))

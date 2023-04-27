@@ -18,7 +18,7 @@ class REPL {
         this.vars = this.vars + ((variable, tp))
         s"let $variable : $tp"
       case REPLAlgebra(variable, alg) =>
-        this.algebras = this.algebras + ((variable, alg))
+        this.algebras = this.algebras + ((variable, AlgebraNamed(alg, variable)))
         cmd.toString
       case REPLType(variable, tp) =>
         this.typeVars = this.typeVars + ((variable, TVConstant(tp)))
