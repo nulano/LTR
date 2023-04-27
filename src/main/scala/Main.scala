@@ -96,7 +96,7 @@ object Main {
         |""".stripMargin
 
     val repl = new REPL()
-    val reader = input.split('\n').iterator ++ StdInReader
+    val reader = /*input.split('\n').iterator ++*/ StdInReader
     val parser = new Parser("<stdin>", new FileLoader(reader))
     while parser.peek().tk != Tk.EOF do {
       try

@@ -1,24 +1,29 @@
 type bool(b : 𝔹) = ((1 ∧ [(b = F)]) + (1 ∧ [(b = T)]))
+alg ixbool = (inj₁ () ⇒ F ‖ inj₂ () ⇒ T)
+type wbool(b : 𝔹) = μ(I ⊕ I) ⊃ ixbool ⇒ b
 let false = (return inj₁ <> : ↑bool(F))
 let true = (return inj₂ <> : ↑bool(T))
 
-def bool_not : ∀b : 𝔹 .
-               (bool(b) → ↑bool((b = F)))
-             = λx . match x {
+def bool_not : ∀b : 𝔹 . (wbool(b) → ↑bool((b = F)))
+             = λwx . match wx { into(x) ⇒ match x {
                inj₁ f ⇒ return true
              ‖ inj₂ t ⇒ return false
-             }
+             }}
 
-def bool_and : ∀a : 𝔹 . ∀b : 𝔹 .
-               (bool(a) → (bool(b) → ↑bool(((a = T) ∧ (b = T)))))
-             = λx . λy . match x {
+def bool_and : ∀a : 𝔹 . ∀b : 𝔹 . (wbool(a) → (wbool(b) → ↑bool(((a = T) ∧ (b = T)))))
+             = λwx . λwy . match wx { into(x) ⇒ match x {
                inj₁ f ⇒ return false
-             ‖ inj₂ t ⇒ return y
-             }
+             ‖ inj₂ t ⇒ match wy { into(y) ⇒ return y }
+             }}
 
-def bool_or : ∀a : 𝔹 . ∀b : 𝔹 .
-              (bool(a) → (bool(b) → ↑bool(((a = T) ∨ (b = T)))))
-            = λx . λy . match x {
-              inj₁ f ⇒ return y
+def bool_or : ∀a : 𝔹 . ∀b : 𝔹 . (wbool(a) → (wbool(b) → ↑bool(((a = T) ∨ (b = T)))))
+            = λwx . λwy . match wx { into(x) ⇒ match x {
+              inj₁ f ⇒ match wy { into(y) ⇒ return y }
             ‖ inj₂ t ⇒ return true
-            }
+            }}
+
+def bool_xor : ∀a : 𝔹 . ∀b : 𝔹 . (wbool(a) → (wbool(b) → ↑bool(((a = T) ≠ (b = T)))))
+             = λwx . λwy . match wx { into(x) ⇒ match x {
+               inj₁ f ⇒ match wy { into(y) ⇒ return y }
+             ‖ inj₂ t ⇒ let result = bool_not(wy); return result
+             }}
