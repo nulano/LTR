@@ -68,9 +68,7 @@ object REPLCommand extends Parseable[REPLCommand] {
           val i = IVBound.parse(pc)
           pc.pop(Tk.RParen)
           pc.pop(Tk.Eq)
-          PType.parse(pc + i) match
-            case tp: PInductive => REPLTypeInductive(v, i, tp)(tok)
-            case _ => throw ParseException("expected an inductive type")
+          REPLTypeInductive(v, i, PType.parse(pc + i))(tok)
         } else {
           val tp = PType.parse(pc)
           REPLType(v, tp)(tok)
@@ -103,7 +101,8 @@ case class REPLAlgebra(variable: String, alg: Algebra)(val token: Token) extends
 case class REPLType(variable: String, tp: PType)(val token: Token) extends REPLCommand {
   override def toString: String = s"type $variable = $tp"
 }
-case class REPLTypeInductive(variable: String, indexVariable: IndexVariable, tp: PInductive)(val token: Token) extends REPLCommand {
+// TODO rename
+case class REPLTypeInductive(variable: String, indexVariable: IndexVariable, tp: PType)(val token: Token) extends REPLCommand {
   override def toString: String = s"type $variable($indexVariable) = $tp"
 }
 
@@ -116,7 +115,8 @@ case class TVConstant(tp: PType) extends TypeVar {
 }
 
 // TODO check index variable scope
-case class TVInductive(variable: IndexVariable, tp: PInductive) extends TypeVar {
+// TODO rename
+case class TVInductive(variable: IndexVariable, tp: PType) extends TypeVar {
   override def instantiate(pc: ParseContext): PType = {
     val tok = pc.pop(Tk.LParen)
     val idx = Index.parse(pc)

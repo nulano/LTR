@@ -1,20 +1,23 @@
-type bool = (1 + 1)
-let false = (return inj₁ <> : ↑bool)
-let true = (return inj₂ <> : ↑bool)
+type bool(b : 𝔹) = ((1 ∧ [(b = F)]) + (1 ∧ [(b = T)]))
+let false = (return inj₁ <> : ↑bool(F))
+let true = (return inj₂ <> : ↑bool(T))
 
-def bool_not : (bool → ↑bool)
+def bool_not : ∀b : 𝔹 .
+               (bool(b) → ↑bool((b = F)))
              = λx . match x {
                inj₁ f ⇒ return true
              ‖ inj₂ t ⇒ return false
              }
 
-def bool_and : (bool → (bool → ↑bool))
+def bool_and : ∀a : 𝔹 . ∀b : 𝔹 .
+               (bool(a) → (bool(b) → ↑bool(((a = T) ∧ (b = T)))))
              = λx . λy . match x {
                inj₁ f ⇒ return false
              ‖ inj₂ t ⇒ return y
              }
 
-def bool_or : (bool → (bool → ↑bool))
+def bool_or : ∀a : 𝔹 . ∀b : 𝔹 .
+              (bool(a) → (bool(b) → ↑bool(((a = T) ∨ (b = T)))))
             = λx . λy . match x {
               inj₁ f ⇒ return y
             ‖ inj₂ t ⇒ return true
