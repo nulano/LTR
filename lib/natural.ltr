@@ -2,6 +2,8 @@ alg ixnat = (inj₁ () ⇒ 0 ‖ inj₂ (a, ()) ⇒ (1 + a))
 type nat(i : ℕ) = μ (I ⊕ (Id ⊗ I)) ⊃ ixnat ⇒ i
 
 let nat_0 = (return into(inj₁ <>) : ↑nat(0))
+let nat_1 = (return into(inj₂ <nat_0, <>>) : ↑nat(1))
+let nat_2 = (return into(inj₂ <nat_1, <>>) : ↑nat(2))
 
 def nat_is0 : ∀i : ℕ . (nat(i) → ↑bool((i = 0)))
             = λwx . match wx { into (x) ⇒ match x {

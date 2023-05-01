@@ -123,6 +123,8 @@ object Z3 {
     val output = processOutput.readLine()
     if output == null || !process.isAlive then
       throw new RuntimeException("Z3 process died")
+    // TODO "unknown" -> timeout
+    //      "sat" -> not unsat
     output.trim == "unsat"
   }
 }
