@@ -96,7 +96,7 @@ case class SCPrecondition(proposition: Proposition, rest: SubtypingConstraint) e
 
   // ⊨W⊃
   override def check(ctx: LogicCtx): Unit = {
-    rest.check(ctx + proposition)
+    rest.check(ctx + proposition.norm)
   }
 }
 case class SCForAll(variable: IndexVariable, rest: SubtypingConstraint) extends SubtypingConstraint {

@@ -3,7 +3,8 @@ import scala.util.matching.Regex
 case class Token(tk: Tk, text: String, loc: ParseLocation)
 
 sealed trait ParseLocation {
-  def caused(msg: String): String = s"msg, at $this"
+  def caused(msg: String, newline: Boolean = false): String =
+    if newline then s"msg\n    at $this" else s"msg, at $this"
 }
 
 class ParseException(val msg: String, val loc: Option[ParseLocation] = None)
@@ -36,9 +37,10 @@ sealed class Parser(name: String, lines: Iterator[String]) {
   case class Location(line: String, row: Int, col: Int, len: Int) extends ParseLocation {
     override def toString: String = s"$name:$row:${col + 1}"
 
-    override def caused(msg: String): String = {
+    override def caused(msg: String, newline: Boolean = false): String = {
       val prefix = causedRegex.replaceAllIn(line.substring(0, col), " ")
-      s"$msg, at $this\n    $line\n    $prefix${"^" * len}"
+      val suffix = s"at $this\n    $line\n    $prefix${"^" * len}"
+      if newline then s"$msg\n  $suffix" else s"$msg, $suffix"
     }
   }
   

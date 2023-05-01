@@ -1,7 +1,9 @@
 
 type VariableContext = Map[String, PType]
 
-sealed trait Value
+sealed trait Value {
+  val token: Token
+}
 
 object Value extends Parseable[Value] {
   def parse(pc: ParseContext): Value = {
@@ -72,7 +74,7 @@ object Value extends Parseable[Value] {
         SCProposition(p) +: out
       // Alg⇐Var
       case (ValVariable(v), _) =>
-        val t = vars.getOrElse(v, throw TypeException(s"unbound variable $v"))
+        val t = vars.getOrElse(v, throw TypeException(value.token.loc.caused(s"unbound variable $v")))
         List(PType.subtype(t, tp)(ctx))
       // Alg⇐1
       case (ValUnit(), PUnit) => List.empty
@@ -87,7 +89,7 @@ object Value extends Parseable[Value] {
       case (ValInto(v), t: PInductive) => checkType(v, t.unroll)(ctx, vars)
       // Alg⇐↓
       case (ValExpression(e), PSuspended(n)) => List(TCExpression(e, n))
-      case _ => throw TypeException(s"value does not match required type: $value ⇐ $tp")
+      case _ => throw TypeException(value.token.loc.caused(s"value does not match required type: $value ⇐ $tp"))
     }
   }
 }

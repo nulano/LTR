@@ -1,6 +1,8 @@
 import scala.annotation.tailrec
 
-sealed trait Expression
+sealed trait Expression {
+  val token: Token
+}
 
 object Expression extends Parseable[Expression] {
   override def parse(pc: ParseContext): Expression = {
@@ -30,7 +32,7 @@ object Expression extends Parseable[Expression] {
         pc.pop(Tk.Dot)
         val body = Expression.parse(pc)
         ExpRecursive(variable, tp, body)(tok)
-      case Tk.Unreachable => ExpUnreachable
+      case Tk.Unreachable => ExpUnreachable()(tok)
       case _ => throw UnexpectedTokenParseException(tok, "an expression")
     }
   }
@@ -50,7 +52,10 @@ object Expression extends Parseable[Expression] {
       // Alg⇐↑
       case (ExpReturn(v), NComputation(t)) =>
         val out = Value.checkType(v, t)(ctx2.idxVars, vars)
-        out.foreach(_.check(ctx2, vars))
+        try out.foreach(_.check(ctx2, vars))
+        catch
+          case typeException: TypeException =>
+            throw TypeException(expression.token.loc.caused(s"expression type constraint unsatisfied: $expression")).initCause(typeException)
       // Alg⇐let
       case (ExpLet(v, be, bd), _) =>
         val (vt, vc) = be.getType(ctx2, vars).result.extract
@@ -69,9 +74,9 @@ object Expression extends Parseable[Expression] {
         val cond = IPLess(temp, IVariable(rtv))
         val rct = PSuspended(NForAll(temp.variable, NPrecondition(cond, (temp / rtv)(rtt))))
         checkType(rb, rtt)(ctx2 + rtv, vars + ((rv, rct)))
-      case (ExpUnreachable, _) =>
+      case (ExpUnreachable(), _) =>
         Z3.assertUnsat(ctx)
-      case _ => throw TypeException(s"expression does not match type: $expression ⇐ $tp")
+      case _ => throw TypeException(expression.token.loc.caused(s"expression does not match type: $expression ⇐ $tp"))
   }
 }
 
@@ -90,7 +95,7 @@ case class ExpFunction(variable: String, body: Expression)(val token: Token) ext
 case class ExpRecursive(variable: String, tp: NType, body: Expression)(val token: Token) extends Expression {
   override def toString: String = s"rec $variable : $tp . $body"
 }
-object ExpUnreachable extends Expression {
+case class ExpUnreachable()(val token: Token) extends Expression {
   override def toString: String = "unreachable"
 }
 

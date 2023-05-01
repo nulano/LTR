@@ -95,6 +95,7 @@ class ParserTest extends AnyFreeSpec {
   parseMatch[MPInto]("match x    { into  (  y  )=> return y}", "match x {into(y) ⇒ return y}")
   parseTo[ExpFunction](Expression, "fun  x.return <x,x>", "λx . return <x, x>")
   roundtrip[ExpRecursive](Expression, "rec x : (1 → ↑1) . λy . let z = x(y); return z")
+  roundtrip[ExpUnreachable](Expression, "unreachable")
   raise(Expression, "{return <>}", "unexpected '{' (expecting an expression)")
 
   parseTo[FIdentity.type](FunctorBase, "id", "Id")
@@ -206,7 +207,7 @@ class ParserTest extends AnyFreeSpec {
   roundtrip[REPLType](REPLCommand, "type unit = 1")
   roundtrip[REPLTypeInductive](REPLCommand, "type nat(n : ℕ) = μ(I ⊕ (Id ⊗ I)) ⊃ (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a)) ⇒ n")
   raise(REPLCommand, "return <>", "unexpected 'return' (expecting a REPL statement)")
-  raise(REPLCommand, "type nat(n:N) = 1", "expected an inductive type")
+  roundtrip[REPLTypeInductive](REPLCommand, "type test(i : ℕ) = (1 ∧ [(i = 5)])")
 
   // TODO separate test file?
   "PType.parse('foo') should return PUnit '1' with context 'type foo = 1'" in {

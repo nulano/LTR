@@ -57,6 +57,17 @@ rec list_split : ∀l : ℕ . ∀i : ℕ . [(i ≤ l)] ⊃ (list(l) → (nat(i) 
                      }
                  }
 
+rec list_append : ∀a : ℕ . ∀b : ℕ . (list(a) → (list(b) → ↑list((a + b))))
+                = λleft . λright .
+                  match left { into(left_) ⇒ match left_ {
+                    inj₁ nil ⇒ return right
+                  ‖ inj₂ cons ⇒ match cons {
+                      <head, rest> ⇒ match rest {
+                        <tail, u> ⇒
+                          let result_tail = list_append(tail, right);
+                          return into(inj₂ <head, <result_tail, <>>>)
+                }}}}
+
 def mergesort_split : ∀l : ℕ . [(l ≥ 2)] ⊃ (list(l) → ↑(list((l / 2)) × list(((l + 1) / 2))))
                     = λl .
                       let len = list_len(l);
@@ -106,3 +117,32 @@ rec mergesort : ∀l : ℕ . (list(l) → ↑list(l))
                         let sorted = mergesort_merge(len, left_sorted, right_sorted);
                         return sorted
                 }}
+
+rec quicksort_split : ∀l : ℕ . ∀f : ℕ . (nat(f) → (list(l) → ↑∃s : ℕ . ((list(s) × list((l - s))) ∧ [(s ≤ l)])))
+                    = λpivot . λlst .
+                      match lst { into(lst_) ⇒ match lst_ {
+                        inj₁ nil ⇒ return <list_nil, list_nil>
+                      ‖ inj₂ cons ⇒ match cons { <head, rest> ⇒ match rest { <tail, u> ⇒
+                          let tail_split = quicksort_split(pivot, tail);
+                          match tail_split { <le, gt> ⇒
+                            let is_le = nat_le(head, pivot);
+                            match is_le {
+                              inj₁ f ⇒ return <le, into(inj₂ <head, <gt, <>>>)>
+                            ‖ inj₂ t ⇒ return <into(inj₂ <head, <le, <>>>), gt>
+                      }}}}}}
+
+rec quicksort : ∀l : ℕ . (list(l) → ↑list(l))
+              = λlst . match lst { into(lst_) ⇒ match lst_ {
+                  inj₁ nil ⇒ return lst
+                ‖ inj₂ cons ⇒ match cons {
+                    <pivot, rest> ⇒ match rest {
+                      <tail, u> ⇒
+                        let le_gt = quicksort_split(pivot, tail);
+                        match le_gt {
+                          <le, gt> ⇒
+                            let le_sorted = quicksort(le);
+                            let gt_sorted = quicksort(gt);
+                            let result = list_append(le_sorted, into(inj₂ <pivot, <gt_sorted, <>>>));
+                            return result
+                }}}}}
+
