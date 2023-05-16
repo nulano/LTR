@@ -240,7 +240,7 @@ case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) exten
       // AlgUnroll∃
       case (FProduct(FConstant(PExists(fv, ft)), fr), AlgebraProd(APProduct(APPack(av, ar), apr), ai)) =>
         val v2 = IVariable(new IVBound(fv.name, fv.sort))
-        PExists(v2.variable, unroll(FProduct(FConstant(ft), fr), AlgebraProd(APProduct(ar, apr), (v2 / av)(ai))))
+        PExists(v2.variable, unroll(FProduct(FConstant((v2 / fv)(ft)), fr), AlgebraProd(APProduct(ar, apr), (v2 / av)(ai))))
       // AlgUnrollConst
       case (FProduct(FConstant(ft), fr), AlgebraProd(APProduct(APConstant, apr), ai)) =>
         PProd(ft, unroll(fr, AlgebraProd(apr, ai)))
