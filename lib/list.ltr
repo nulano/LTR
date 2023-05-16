@@ -68,6 +68,9 @@ rec list_append : ∀a : ℕ . ∀b : ℕ . (list(a) → (list(b) → ↑list((a
                           return into(inj₂ <head, <result_tail, <>>>)
                 }}}}
 
+alg slist = (inj₁ () ⇒ (0, (0, T)) ‖ inj₂ (pack(j, _), (t, ())) ⇒ (j, ((π₁ π₂ t + 1), ((π₂ π₂ t = T) ∧ (π₁ t ≤ j)))))
+type slist(i : (ℕ × (ℕ × 𝔹))) = μ(I ⊕ ([∃j : ℕ . nat(j)] ⊗ (Id ⊗ I))) ⊃ slist ⇒ i
+
 def mergesort_split : ∀l : ℕ . [(l ≥ 2)] ⊃ (list(l) → ↑(list((l / 2)) × list(((l + 1) / 2))))
                     = λl .
                       let len = list_len(l);
@@ -75,8 +78,10 @@ def mergesort_split : ∀l : ℕ . [(l ≥ 2)] ⊃ (list(l) → ↑(list((l / 2)
                       let result = list_split(l, half);
                       return result
 
-rec mergesort_merge : ∀total : ℕ . ∀left : ℕ . [(left ≤ total)]
-                    ⊃ (nat(total) → (list(left) → (list((total - left)) → ↑list(total))))
+rec mergesort_merge : ∀total : ℕ . ∀left : (ℕ × (ℕ × 𝔹)) . ∀right : (ℕ × (ℕ × 𝔹))
+                    . [((π₁ π₂ left ≤ total) ∧ ((π₁ π₂ left + π₁ π₂ right) = total))]
+                    ⊃ [((π₂ π₂ left = T) ∧ (π₂ π₂ right = T))]
+                    ⊃ (nat(total) → (slist(left) → (slist(right) → ↑slist((((π₁ left - π₁ right) + π₁ right), (total, T))))))
                     = λtotal . λleft . λright .
                       match left { into(left_) ⇒ match left_ {
                         inj₁ nil ⇒ return right
@@ -86,28 +91,28 @@ rec mergesort_merge : ∀total : ℕ . ∀left : ℕ . [(left ≤ total)]
                             <left_head, left_rest> ⇒ match right_cons {
                               <right_head, right_rest> ⇒
                                 let rest_count = nat_pred(total);
-                                let left_le = nat_le(left_head, right_head);
-                                match left_le {
+                                let left_ge = nat_ge(left_head, right_head);
+                                match left_ge {
                                   inj₂ t ⇒ match left_rest {
                                     <left_tail, u> ⇒
                                       let rest = mergesort_merge(rest_count, left_tail, right);
-                                      let result = list_cons(left_head, rest);
-                                      return result
+                                      return into(inj₂ <left_head, <rest, <>>>)
                                   }
                                 ‖ inj₁ f ⇒ match right_rest {
                                     <right_tail, u> ⇒
-                                      let right_tail = list_tail(right);
                                       let rest = mergesort_merge(rest_count, left, right_tail);
-                                      let result = list_cons(right_head, rest);
-                                      return result
+                                      return into(inj₂ <right_head, <rest, <>>>)
                     }}}}}}}}
 
-rec mergesort : ∀l : ℕ . (list(l) → ↑list(l))
+rec mergesort : ∀l : ℕ . (list(l) → ↑∃i : (ℕ × (ℕ × 𝔹)) . (slist(i) ∧ [((π₁ π₂ i = l) ∧ (π₂ π₂ i = T))]))
               = λlst .
                 let len = list_len(lst);
                 let simple = nat_le(len, nat_1);
                 match simple {
-                  inj₂ t ⇒ return lst
+                  inj₂ t ⇒ match lst { into(lst_) ⇒ match lst_ {
+                    inj₁ u ⇒ return into(inj₁ <>)
+                  ‖ inj₂ lst__ ⇒ match lst__ { <x, xs> ⇒ return into(inj₂ <x, <into(inj₁ <>), <>>>) }
+                  }}
                 ‖ inj₁ f ⇒
                     let parts = mergesort_split(lst);
                     match parts {
