@@ -7,8 +7,8 @@ let nat_2 : nat(2) = into(inj₂ <nat_1, <>>)
 
 def nat_is0 : ∀i : ℕ . (nat(i) → ↑bool((i = 0)))
             = λwx . match wx { into (x) ⇒ match x {
-                inj₁ u ⇒ return true
-              ‖ inj₂ pair ⇒ return false
+                inj₁ zero ⇒ return true
+              ‖ inj₂ succ ⇒ return false
               }}
 def nat_not0 : ∀i : ℕ . (nat(i) → ↑bool((i ≠ 0)))
              = λwx . let is0 = nat_is0(wx);
@@ -20,19 +20,18 @@ def nat_succ : ∀i : ℕ . (nat(i) → ↑nat((i + 1)))
 
 def nat_pred_c : ∀i : ℕ . (nat(i) → ↑nat((i - 1)))
                = λwx . match wx { into(x) ⇒ match x {
-                   inj₁ u ⇒ return nat_0
-                 ‖ inj₂ pair ⇒ match pair { <wp, u> ⇒ return wp }
+                   inj₁ zero ⇒ return nat_0
+                 ‖ inj₂ succ ⇒ match succ { <wp, u> ⇒ return wp }
                  }}
 
-def nat_pred : ∀i : ℕ . [(i ≥ 1)] ⊃ (nat(i) → ↑nat((i - 1)))
-             = λwx . let result = nat_pred_c(wx); return result
+let nat_pred : ↓∀i : ℕ . [(i ≥ 1)] ⊃ (nat(i) → ↑nat((i - 1))) = nat_pred_c
 
 rec nat_lt : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑bool((i < j))))
            = λwx . λwy . match wx { into(x) ⇒ match x {
-               inj₁ u ⇒
+               inj₁ zero ⇒
                  let result = nat_not0(wy);
                  return result
-             ‖ inj₂ pair ⇒ match pair { <x_pred, u> ⇒
+             ‖ inj₂ succ ⇒ match succ { <x_pred, u> ⇒
                  let y_pred_c = nat_pred_c(wy);
                  let result = nat_lt(x_pred, y_pred_c);
                  return result
@@ -66,8 +65,8 @@ def nat_ne : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑bool((i ≠ j)
 
 rec nat_add : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑nat((i + j))))
             = λwx . λwy . match wx { into(x) ⇒ match x {
-                inj₁ u ⇒ return wy
-              ‖ inj₂ pair ⇒ match pair { <x_pred, u> ⇒
+                inj₁ zero ⇒ return wy
+              ‖ inj₂ succ ⇒ match succ { <x_pred, u> ⇒
                   let y_succ = nat_succ(wy);
                   let result = nat_add(x_pred, y_succ);
                   return result
@@ -75,12 +74,21 @@ rec nat_add : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑nat((i + j)))
 
 rec nat_sub : ∀i : ℕ . ∀j : ℕ . [(i ≥ j)] ⊃ (nat(i) → (nat(j) → ↑nat((i - j))))
             = λwx . λwy . match wy { into(y) ⇒ match y {
-                inj₁ u ⇒ return wx
-              ‖ inj₂ pair ⇒ match pair { <y_pred, u> ⇒
+                inj₁ zero ⇒ return wx
+              ‖ inj₂ succ ⇒ match succ { <y_pred, u> ⇒
                   let x_pred = nat_pred(wx);
                   let result = nat_sub(x_pred, y_pred);
                   return result
               }}}
+
+rec nat_sub_c : ∀j : ℕ . ∀i : ℕ . (nat(i) → (nat(j) → ↑nat((i - j))))
+              = λwx . λwy . match wy { into(y) ⇒ match y {
+                  inj₁ zero ⇒ return wx
+                ‖ inj₂ succ ⇒ match succ { <y_pred, u> ⇒
+                    let x_pred_c = nat_pred_c(wx);
+                    let result = nat_sub_c(x_pred_c, y_pred);
+                    return result
+                }}}
 
 rec nat_div : ∀i : ℕ . ∀j : ℕ . [(j ≥ 1)] ⊃ (nat(i) → (nat(j) → ↑nat((i / j))))
             = λx . λy .
