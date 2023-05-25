@@ -12,11 +12,10 @@ class REPL {
   def processCommand(cmd: REPLCommand): String = {
     cmd match
       case command: REPLLetCommand =>
-        val (variable, boundExpression) = command.assignment
-        val (tp, c) = boundExpression.getType(ctx, vars).result.extract
+        val (tp, c) = command.boundExpression.getType(ctx, vars).result.extract
         this.ctx = this.ctx ++ c
-        this.vars = this.vars + ((variable, tp))
-        s"let $variable : $tp"
+        this.vars = this.vars + ((command.variable, tp))
+        s"let ${command.variable} : $tp"
       case REPLAlgebra(variable, alg) =>
         this.algebras = this.algebras + ((variable, AlgebraNamed(alg, variable)))
         cmd.toString
@@ -31,7 +30,15 @@ class REPL {
 
 sealed trait REPLCommand
 sealed trait REPLLetCommand extends REPLCommand {
-  def assignment: (String, BoundExpression)
+  val variable: String
+  def boundExpression: BoundExpression
+}
+sealed trait REPLLetValCommand extends REPLLetCommand {
+  val tp: PType
+  val value: Value
+  val token: Token
+
+  override def boundExpression: BoundExpression = BEExpression(ExpReturn(value)(token), tp)(token)
 }
 
 object REPLCommand extends Parseable[REPLCommand] {
@@ -40,9 +47,14 @@ object REPLCommand extends Parseable[REPLCommand] {
     tok.tk match {
       case Tk.Let =>
         val v = pc.pop(Tk.Var).text
-        pc.pop(Tk.Eq)
-        val g = BoundExpression.parse(pc)
-        REPLLet(v, g)(tok)
+        if pc.pop(Tk.Eq, Tk.Colon).tk == Tk.Eq then
+          val g = BoundExpression.parse(pc)
+          REPLLet(v, g)(tok)
+        else
+          val tp = PType.parse(pc)
+          pc.pop(Tk.Eq)
+          val value = Value.parse(pc)
+          REPLLetVal(v, tp, value)(tok)
       case Tk.Def =>
         val v = pc.pop(Tk.Var).text
         pc.pop(Tk.Colon)
@@ -64,36 +76,36 @@ object REPLCommand extends Parseable[REPLCommand] {
         REPLAlgebra(v, a)(tok)
       case Tk.Type =>
         val v = pc.pop(Tk.Var).text
-        if pc.pop(Tk.Eq, Tk.LParen).tk == Tk.LParen then {
+        if pc.pop(Tk.Eq, Tk.LParen).tk == Tk.LParen then
           val i = IVBound.parse(pc)
           pc.pop(Tk.RParen)
           pc.pop(Tk.Eq)
           REPLTypeInductive(v, i, PType.parse(pc + i))(tok)
-        } else {
+        else
           val tp = PType.parse(pc)
           REPLType(v, tp)(tok)
-        }
       case _ => throw UnexpectedTokenParseException(tok, "a REPL statement")
     }
   }
 }
 
-case class REPLLet(variable: String, exp: BoundExpression)(val token: Token) extends REPLLetCommand {
-  override def toString: String = s"let $variable = $exp"
-
-  override def assignment: (String, BoundExpression) = (variable, exp)
+case class REPLLet(override val variable: String, override val boundExpression: BoundExpression)(val token: Token) extends REPLLetCommand {
+  override def toString: String = s"let $variable = $boundExpression"
 }
-case class REPLDef(variable: String, tp: NType, exp: Expression)(val token: Token) extends REPLLetCommand {
-  override def toString: String = s"def $variable : $tp = $exp"
-
-  override def assignment: (String, BoundExpression) =
-    (variable, BEExpression(ExpReturn(ValExpression(exp)(token))(token), PSuspended(tp))(token))
+case class REPLLetVal(override val variable: String, override val tp: PType, override val value: Value)(override val token: Token) extends REPLLetValCommand {
+  override def toString: String = s"let $variable : $tp = $value"
 }
-case class REPLRec(variable: String, tp: NType, exp: Expression)(val token: Token) extends REPLLetCommand {
-  override def toString: String = s"rec $variable : $tp = $exp"
+case class REPLDef(override val variable: String, ntp: NType, exp: Expression)(override val token: Token) extends REPLLetValCommand {
+  override def toString: String = s"def $variable : $ntp = $exp"
 
-  override def assignment: (String, BoundExpression) =
-    (variable, BEExpression(ExpReturn(ValExpression(ExpRecursive(variable, tp, exp)(token))(token))(token), PSuspended(tp))(token))
+  override val tp: PType = PSuspended(ntp)
+  override val value: Value = ValExpression(exp)(token)
+}
+case class REPLRec(override val variable: String, ntp: NType, exp: Expression)(override val token: Token) extends REPLLetValCommand {
+  override def toString: String = s"rec $variable : $ntp = $exp"
+
+  override val tp: PType = PSuspended(ntp)
+  override val value: Value = ValExpression(ExpRecursive(variable, ntp, exp)(token))(token)
 }
 case class REPLAlgebra(variable: String, alg: Algebra)(val token: Token) extends REPLCommand {
   override def toString: String = s"alg $variable = $alg"

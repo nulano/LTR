@@ -1,8 +1,8 @@
 type bool(b : 𝔹) = ((1 ∧ [(b = F)]) + (1 ∧ [(b = T)]))
 alg ixbool = (inj₁ () ⇒ F ‖ inj₂ () ⇒ T)
 type wbool(b : 𝔹) = μ(I ⊕ I) ⊃ ixbool ⇒ b
-let false = (return inj₁ <> : ↑bool(F))
-let true = (return inj₂ <> : ↑bool(T))
+let false : bool(F) = inj₁ <>
+let true : bool(T) = inj₂ <>
 
 def bool_not : ∀b : 𝔹 . (wbool(b) → ↑bool((b = F)))
              = λwx . match wx { into(x) ⇒ match x {

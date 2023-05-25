@@ -3,7 +3,7 @@
 alg listlen = (inj₁ () ⇒ 0 ‖ inj₂ (_, (p, ())) ⇒ (p + 1))
 type list(l : ℕ) = μ(I ⊕ ([∃j : ℕ . nat(j)] ⊗ (Id ⊗ I))) ⊃ listlen ⇒ l
 
-let list_nil = (return into(inj₁ <>) : ↑list(0))
+let list_nil : list(0) = into(inj₁ <>)
 def list_cons : ∀l : ℕ . ∀i : ℕ . (nat(i) → (list(l) → ↑list((l + 1))))
               = λx . λxs . return into(inj₂ <x, <xs, <>>>)
 

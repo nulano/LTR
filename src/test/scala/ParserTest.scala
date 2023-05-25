@@ -201,6 +201,7 @@ class ParserTest extends AnyFreeSpec {
   raise(NType, "↓↑1", "unexpected '↓' (expecting a negative type)")
 
   roundtrip[REPLLet](REPLCommand, "let x = (return <> : ↑1)")
+  roundtrip[REPLLetVal](REPLCommand, "let x : 1 = <>")
   roundtrip[REPLDef](REPLCommand, "def x : ↑1 = return <>")
   roundtrip[REPLRec](REPLCommand, "rec x : ∀a : ℕ . ↑1 = return <>")
   roundtrip[REPLAlgebra](REPLCommand, "alg ixnat = (inl () ⇒ 0 ‖ inr (a, ()) ⇒ (1 + a))")
