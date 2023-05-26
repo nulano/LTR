@@ -87,15 +87,12 @@ rec mergesort_merge : ∀total : ℕ . ∀left : ℕ . [(left ≤ total)]
                                   inj₂ t ⇒ match left_rest {
                                     <left_tail, u> ⇒
                                       let rest = mergesort_merge(rest_count, left_tail, right);
-                                      let result = list_cons(left_head, rest);
-                                      return result
+                                      return into(inj₂ <left_head, <rest, <>>>)
                                   }
                                 ‖ inj₁ f ⇒ match right_rest {
                                     <right_tail, u> ⇒
-                                      let right_tail = list_tail(right);
                                       let rest = mergesort_merge(rest_count, left, right_tail);
-                                      let result = list_cons(right_head, rest);
-                                      return result
+                                      return into(inj₂ <right_head, <rest, <>>>)
                     }}}}}}}}
 
 rec mergesort : ∀l : ℕ . (list(l) → ↑list(l))
