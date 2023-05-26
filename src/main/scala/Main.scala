@@ -98,8 +98,9 @@ object Main {
     val repl = new REPL()
     val reader = /*input.split('\n').iterator ++*/ StdInReader
     val parser = new Parser("<stdin>", new FileLoader(reader))
-    while parser.peek().tk != Tk.EOF do {
+    while true do {
       try
+        if parser.peek().tk == Tk.EOF then return
         val cmd = REPLCommand.parse(repl.makeParseContext(parser))
         println(repl.processCommand(cmd))
       catch
@@ -142,7 +143,7 @@ final class FileLoader(val wrapped: Iterator[String]) extends Iterator[String] {
         if l.startsWith("!!") then
           val file = new java.io.File(l.substring(2).trim)
           if !file.isFile then
-            throw new RuntimeException(s"file not found: $file")
+            throw new ParseException(s"file not found: $file")
           val source = scala.io.Source.fromFile(file, "utf-8")
           try
             val text = source.mkString
