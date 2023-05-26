@@ -1,4 +1,5 @@
 import scala.annotation.{tailrec, targetName}
+import scala.collection.immutable.SortedSet
 
 trait SubstitutableIndex[+T] {
   /**
@@ -16,7 +17,7 @@ trait SubstitutableIndex[+T] {
   def norm: T
 }
 
-type IndexVariableCtx = Set[IndexVariable]
+type IndexVariableCtx = SortedSet[IndexVariable]
 type PropositionCtx = List[Proposition]
 case class LogicCtx(idxVars: IndexVariableCtx, propositions: PropositionCtx) {
   @targetName("incl")
@@ -37,7 +38,7 @@ case class LogicCtx(idxVars: IndexVariableCtx, propositions: PropositionCtx) {
   }
 }
 object LogicCtx {
-  val empty: LogicCtx = LogicCtx(Set.empty, List.empty)
+  val empty: LogicCtx = LogicCtx(SortedSet.empty, List.empty)
 }
 
 trait Extracts[T <: Extracts[T]] {

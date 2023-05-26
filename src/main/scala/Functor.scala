@@ -1,3 +1,4 @@
+import scala.collection.immutable.SortedSet
 
 sealed trait Functor extends WellFormed
 sealed trait FunctorSum extends Functor
@@ -80,7 +81,7 @@ object FUnit extends FunctorProduct {
   override def toString: String = "I"
 
   // AlgFunctorI
-  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = Set.empty
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = SortedSet.empty
 }
 case class FProduct(left: FunctorBase, right: FunctorProduct) extends FunctorProduct {
   override def toString: String = s"($left ⊗ $right)"
@@ -100,5 +101,5 @@ object FIdentity extends FunctorBase {
   override def toString: String = "Id"
 
   // AlgFunctorId
-  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = Set.empty
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = SortedSet.empty
 }

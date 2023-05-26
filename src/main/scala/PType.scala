@@ -1,5 +1,7 @@
+import scala.collection.immutable.SortedSet
+
 sealed trait PType extends Extracts[PType], WellFormed, SubstitutableIndex[PType] {
-  override def extract: (PType, LogicCtx) = (this, LogicCtx(Set.empty, List.empty))
+  override def extract: (PType, LogicCtx) = (this, LogicCtx.empty)
 }
 sealed trait PTypeBase[T <: PTypeBase[T]] extends PType, SubstitutableIndex[T]
 
@@ -150,7 +152,7 @@ object PUnit extends PTypeBase[PUnit.type] {
   override def toString: String = "1"
 
   // AlgTp1
-  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = Set.empty
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = SortedSet.empty
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PUnit.type = this
 
@@ -179,7 +181,7 @@ object PVoid extends PTypeBase[PVoid.type] {
   override def toString: String = "0"
 
   // AlgTp0
-  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = Set.empty
+  override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = SortedSet.empty
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PVoid.type = this
 
@@ -202,7 +204,7 @@ case class PSuspended(tp: NType) extends PTypeBase[PSuspended] {
 
   // AlgTp↓
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx =
-  { tp.wellFormed(ctx); Set.empty }
+  { tp.wellFormed(ctx); SortedSet.empty }
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PSuspended =
     PSuspended((replacement / target)(tp))
@@ -254,7 +256,7 @@ case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) exten
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx = {
     val functorDetermined = functor.wellFormed(ctx)
     val sort = index.sort(ctx)
-    Algebra.wellFormed(Set.empty, ctx, algebra, functor, sort)
+    Algebra.wellFormed(SortedSet.empty, ctx, algebra, functor, sort)
     index match {
       case variable: IVariable => functorDetermined + variable.variable
       case _ => functorDetermined

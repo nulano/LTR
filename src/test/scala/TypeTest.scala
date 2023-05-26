@@ -1,10 +1,12 @@
 import org.scalatest.freespec.AnyFreeSpec
 
+import scala.collection.immutable.SortedSet
+
 class TypeTest extends AnyFreeSpec {
   //noinspection NoTargetNameAnnotationForOperatorLikeDefinition
   private implicit class TestCtx(ctx: Set[String]) {
-    private val indexVars: Set[IndexVariable] =
-      ctx.map(s => IVBound.parse(ParseContext(Parser("test-setup", List(s).iterator))))
+    private val indexVars: SortedSet[IndexVariable] =
+      SortedSet.empty ++ ctx.map(s => IVBound.parse(ParseContext(Parser("test-setup", List(s).iterator))))
 
     private val indexVarsString = (List("∙") ++ indexVars.map(i => s"${i.name} : ${i.sort}")).mkString(", ")
 
@@ -30,7 +32,7 @@ class TypeTest extends AnyFreeSpec {
         assert(vd == expected)
         if (indexVars.nonEmpty) {
           val ex = intercept[TypeException] {
-            obj.wellFormed(Set.empty)
+            obj.wellFormed(SortedSet.empty)
           }
           assert(ex.msg == "variable not in context")
         }

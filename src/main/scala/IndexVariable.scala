@@ -15,6 +15,8 @@ trait IndexVariable {
   def number: Int
 }
 
+implicit val indexVariableOrdering: Ordering[IndexVariable] = Ordering.by(_.number)
+
 class IVBound(val name: String, val sort: Sort) extends IndexVariable {
   val number: Int = IndexVariableCounter.next
   override def toString: String = s"$name${IndexVariableCounter.toString(number)} : $sort"

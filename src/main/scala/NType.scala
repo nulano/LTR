@@ -1,5 +1,7 @@
+import scala.collection.immutable.SortedSet
+
 sealed trait NType extends Extracts[NType], WellFormed, SubstitutableIndex[NType] {
-  override def extract: (NType, LogicCtx) = (this, LogicCtx(Set.empty, List.empty))
+  override def extract: (NType, LogicCtx) = (this, LogicCtx.empty)
 }
 sealed trait NTypeBase[T <: NTypeBase[T]] extends NType, SubstitutableIndex[T]
 
@@ -106,7 +108,7 @@ case class NComputation(result: PType) extends NTypeBase[NComputation] {
 
   // AlgTp↑
   override def wellFormed(ctx: IndexVariableCtx): IndexVariableCtx =
-  { result.wellFormed(ctx); Set.empty }
+  { result.wellFormed(ctx); SortedSet.empty }
 
   override def substituteIndex(replacement: Index, target: IndexVariable): NComputation =
     NComputation((replacement / target)(result))
