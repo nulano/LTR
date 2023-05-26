@@ -1,5 +1,6 @@
 alg ixnat = (inj₁ () ⇒ 0 ‖ inj₂ (a, ()) ⇒ (1 + a))
-type nat(i : ℕ) = μ (I ⊕ (Id ⊗ I)) ⊃ ixnat ⇒ i
+type nat(n : ℕ) = μ(I ⊕ (Id ⊗ I)) ⊃ ixnat ⇒ n
+type unat = ∃n : ℕ . nat(n)
 
 let nat_0 : nat(0) = into(inj₁ <>)
 let nat_1 : nat(1) = into(inj₂ <nat_0, <>>)
@@ -23,7 +24,6 @@ def nat_pred_c : ∀i : ℕ . (nat(i) → ↑nat((i - 1)))
                    inj₁ zero ⇒ return nat_0
                  ‖ inj₂ succ ⇒ match succ { <wp, u> ⇒ return wp }
                  }}
-
 let nat_pred : ↓∀i : ℕ . [(i ≥ 1)] ⊃ (nat(i) → ↑nat((i - 1))) = nat_pred_c
 
 rec nat_lt : ∀i : ℕ . ∀j : ℕ . (nat(i) → (nat(j) → ↑bool((i < j))))

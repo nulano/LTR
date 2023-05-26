@@ -1,52 +1,48 @@
-
--- interesting: pack(...) unrolls into outer ∃ type, _ unrolls into inner ∃ type
 alg listlen = (inj₁ () ⇒ 0 ‖ inj₂ (_, (p, ())) ⇒ (p + 1))
-type list(l : ℕ) = μ(I ⊕ ([∃j : ℕ . nat(j)] ⊗ (Id ⊗ I))) ⊃ listlen ⇒ l
+type list(l : ℕ) = μ(I ⊕ ([unat] ⊗ (Id ⊗ I))) ⊃ listlen ⇒ l
 
 let list_nil : list(0) = into(inj₁ <>)
-def list_cons : ∀l : ℕ . ∀i : ℕ . (nat(i) → (list(l) → ↑list((l + 1))))
+def list_cons : ∀l : ℕ . (unat → (list(l) → ↑list((l + 1))))
               = λx . λxs . return into(inj₂ <x, <xs, <>>>)
 
-def list_head : ∀l : ℕ . [(l ≥ 1)] ⊃ (list(l) → ↑∃i : ℕ . nat(i))
+def list_head : ∀l : ℕ . [(l ≥ 1)] ⊃ (list(l) → ↑unat)
               = λl . match l { into(ll) ⇒ match ll {
-                  inj₁ u ⇒ unreachable
-                ‖ inj₂ p ⇒ match p { <x, xs> ⇒ return x }
+                  inj₁ nil ⇒ unreachable
+                ‖ inj₂ cons ⇒ match cons { <x, xs> ⇒ return x }
                 }}
 
 def list_tail : ∀l : ℕ . [(l ≥ 1)] ⊃ (list(l) → ↑list((l - 1)))
               = λl . match l { into(ll) ⇒ match ll {
-                  inj₁ u ⇒ unreachable
-                ‖ inj₂ p ⇒ match p { <x, xsu> ⇒ match xsu { <xs, u> ⇒ return xs }}
+                  inj₁ nil ⇒ unreachable
+                ‖ inj₂ cons ⇒ match cons {
+                    <x, xsu> ⇒ match xsu { <xs, u> ⇒ return xs }}
                 }}
-
-rec list_idx : ∀l : ℕ . ∀i : ℕ . [(i < l)] ⊃ (list(l) → (nat(i) → ↑∃j : ℕ . nat(j)))
-             = λl . λidx . match idx { into(ii) ⇒ match ii {
-                 inj₁ u ⇒
-                   let head = list_head(l);
-                   return head
-               ‖ inj₂ pair ⇒ match pair { <idx_pred, u> ⇒
-                   let tail = list_tail(l);
-                   let result = list_idx(tail, idx_pred);
-                   return result
-               }}}
 
 rec list_len : ∀l : ℕ . (list(l) → ↑nat(l))
              = λl . match l { into(ll) ⇒ match ll {
-                 inj₁ u ⇒ return nat_0
-               ‖ inj₂ p ⇒
+                 inj₁ nil ⇒ return nat_0
+               ‖ inj₂ cons ⇒
                    let tail = list_tail(l);
                    let tail_len = list_len(tail);
                    let result = nat_succ(tail_len);
                    return result
                }}
 
+rec list_idx : ∀l : ℕ . ∀i : ℕ . [(i < l)] ⊃ (list(l) → (nat(i) → ↑unat))
+             = λl . λidx . match idx { into(ii) ⇒ match ii {
+                 inj₁ zero ⇒
+                   let head = list_head(l);
+                   return head
+               ‖ inj₂ succ ⇒ match succ { <idx_pred, u> ⇒
+                   let tail = list_tail(l);
+                   let result = list_idx(tail, idx_pred);
+                   return result
+               }}}
+
 rec list_split : ∀l : ℕ . ∀i : ℕ . [(i ≤ l)] ⊃ (list(l) → (nat(i) → ↑(list(i) × list((l - i)))))
-               = λl . λi .
-                 let done = nat_le(i, nat_0);
-                 match done {
-                   inj₂ t ⇒ return <list_nil, l>
-                 ‖ inj₁ f ⇒
-                     let i_pred = nat_pred(i);
+               = λl . λi . match i { into(ii) ⇒ match ii {
+                   inj₁ zero ⇒ return <list_nil, l>
+                 ‖ inj₂ succ ⇒ match succ { <i_pred, u> ⇒
                      let head = list_head(l);
                      let tail = list_tail(l);
                      let rest = list_split(tail, i_pred);
@@ -55,7 +51,7 @@ rec list_split : ∀l : ℕ . ∀i : ℕ . [(i ≤ l)] ⊃ (list(l) → (nat(i) 
                          let left_result = list_cons(head, left_rest);
                          return <left_result, right_result>
                      }
-                 }
+                 }}}
 
 rec list_append : ∀a : ℕ . ∀b : ℕ . (list(a) → (list(b) → ↑list((a + b))))
                 = λleft . λright .
@@ -118,31 +114,42 @@ rec mergesort : ∀l : ℕ . (list(l) → ↑list(l))
                         return sorted
                 }}
 
-rec quicksort_split : ∀l : ℕ . ∀f : ℕ . (nat(f) → (list(l) → ↑∃s : ℕ . ((list(s) × list((l - s))) ∧ [(s ≤ l)])))
-                    = λpivot . λlst .
-                      match lst { into(lst_) ⇒ match lst_ {
+type comparator = ↓(unat → (unat → ↑(1 + 1)))
+
+rec quicksort_split : ∀l : ℕ . (unat → (list(l) → (comparator
+                    → ↑∃s : ℕ . ((list(s) × list((l - s))) ∧ [(s ≤ l)]))))
+                    = λpivot . λlst . λcmp .
+                    match lst { into(lst_) ⇒ match lst_ {
                         inj₁ nil ⇒ return <list_nil, list_nil>
-                      ‖ inj₂ cons ⇒ match cons { <head, rest> ⇒ match rest { <tail, u> ⇒
-                          let tail_split = quicksort_split(pivot, tail);
-                          match tail_split { <le, gt> ⇒
-                            let is_le = nat_le(head, pivot);
-                            match is_le {
-                              inj₁ f ⇒ return <le, into(inj₂ <head, <gt, <>>>)>
-                            ‖ inj₂ t ⇒ return <into(inj₂ <head, <le, <>>>), gt>
+                      ‖ inj₂ cons ⇒ match cons { <head, tu> ⇒ match tu { <tail, u> ⇒
+                          let tail_split = quicksort_split(pivot, tail, cmp);
+                          match tail_split { <lt, ge> ⇒
+                            let is_lt = cmp(head, pivot);
+                            match is_lt {
+                              inj₁ f ⇒ return <lt, into(inj₂ <head, <ge, <>>>)>
+                            ‖ inj₂ t ⇒ return <into(inj₂ <head, <lt, <>>>), ge>
                       }}}}}}
 
-rec quicksort : ∀l : ℕ . (list(l) → ↑list(l))
-              = λlst . match lst { into(lst_) ⇒ match lst_ {
+rec quicksort : ∀l : ℕ . (list(l) → (comparator → ↑list(l)))
+              = λlst . λcmp . match lst { into(lst_) ⇒ match lst_ {
                   inj₁ nil ⇒ return lst
                 ‖ inj₂ cons ⇒ match cons {
                     <pivot, rest> ⇒ match rest {
                       <tail, u> ⇒
-                        let le_gt = quicksort_split(pivot, tail);
-                        match le_gt {
-                          <le, gt> ⇒
-                            let le_sorted = quicksort(le);
-                            let gt_sorted = quicksort(gt);
-                            let result = list_append(le_sorted, into(inj₂ <pivot, <gt_sorted, <>>>));
+                        let lt_ge = quicksort_split(pivot, tail, cmp);
+                        match lt_ge {
+                          <lt, ge> ⇒
+                            let lt_sorted = quicksort(lt, cmp);
+                            let ge_sorted = quicksort(ge, cmp);
+                            let result = list_append(lt_sorted, into(inj₂ <pivot, <ge_sorted, <>>>));
                             return result
                 }}}}}
 
+def quicksort_asc : ∀l : ℕ . (list(l) → ↑list(l))
+                  = λlst . let sorted = quicksort(lst, {
+                      λx . λy . let lt = nat_lt(x, y);
+                      match lt {
+                        inj₁ f ⇒ return inj₁ <>
+                      ‖ inj₂ t ⇒ return inj₂ <>
+                      }
+                    }); return sorted
