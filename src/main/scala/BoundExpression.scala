@@ -105,7 +105,7 @@ object BEApplication {
         val temp = new IVAlgorithmic(nfa.variable)
         val (res, const) = applySpine((IVariable(temp) / nfa.variable)(nfa.tp), spine)(ctx + temp, vars)
         if temp.solution.isEmpty then
-          throw TypeException(s"failed to determine algorithmic variable $temp")
+          throw TypeException(s"failed to determine algorithmic variable $temp in $head")
         (res, const)
       // AlgSpine⊃
       case (np: NPrecondition, _) =>

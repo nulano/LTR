@@ -52,10 +52,12 @@ object Expression extends Parseable[Expression] {
       // Alg⇐↑
       case (ExpReturn(v), NComputation(t)) =>
         val out = Value.checkType(v, t)(ctx2.idxVars, vars)
-        try out.foreach(_.check(ctx2, vars))
-        catch
-          case typeException: TypeException =>
-            throw TypeException(expression.token.loc.caused(s"expression type constraint unsatisfied: $expression")).initCause(typeException)
+        out.foreach(c => {
+          try c.check(ctx2, vars)
+          catch
+            case typeException: TypeException =>
+              throw TypeException(expression.token.loc.caused(s"type constraint $c unsatisfied in expression $expression")).initCause(typeException)
+        })
       // Alg⇐let
       case (ExpLet(v, be, bd), _) =>
         val (vt, vc) = be.getType(ctx2, vars).result.extract
