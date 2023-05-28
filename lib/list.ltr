@@ -119,7 +119,7 @@ rec mergesort : ∀l : ℕ . (list(l) → ↑∃i : (ℕ × (ℕ × 𝔹)) . (sl
                         return sorted
                 }}
 
-type comparator = ↓(unat → (unat → ↑(1 + 1)))
+type comparator = ↓(unat → (unat → ↑∃b:𝔹.wbool(b)))
 
 rec quicksort_split : ∀l : ℕ . (unat → (list(l) → (comparator
                     → ↑∃s : ℕ . ((list(s) × list((l - s))) ∧ [(s ≤ l)]))))
@@ -129,11 +129,11 @@ rec quicksort_split : ∀l : ℕ . (unat → (list(l) → (comparator
                       ‖ inj₂ cons ⇒ match cons { <head, tu> ⇒ match tu { <tail, u> ⇒
                           let tail_split = quicksort_split(pivot, tail, cmp);
                           match tail_split { <lt, ge> ⇒
-                            let is_lt = cmp(head, pivot);
-                            match is_lt {
+                            let w_is_lt = cmp(head, pivot);
+                            match w_is_lt { into(is_lt) ⇒ match is_lt {
                               inj₁ f ⇒ return <lt, into(inj₂ <head, <ge, <>>>)>
                             ‖ inj₂ t ⇒ return <into(inj₂ <head, <lt, <>>>), ge>
-                      }}}}}}
+                      }}}}}}}
 
 rec quicksort : ∀l : ℕ . (list(l) → (comparator → ↑list(l)))
               = λlst . λcmp . match lst { into(lst_) ⇒ match lst_ {
@@ -152,9 +152,5 @@ rec quicksort : ∀l : ℕ . (list(l) → (comparator → ↑list(l)))
 
 def quicksort_asc : ∀l : ℕ . (list(l) → ↑list(l))
                   = λlst . let sorted = quicksort(lst, {
-                      λx . λy . let lt = nat_lt(x, y);
-                      match lt {
-                        inj₁ f ⇒ return inj₁ <>
-                      ‖ inj₂ t ⇒ return inj₂ <>
-                      }
+                      λx . λy . let lt = nat_lt(x, y); return into(lt)
                     }); return sorted
