@@ -62,11 +62,9 @@ object PType extends Parseable[PType], TypeEquality[PType], TypeSubtype[PType] {
         val w1 = PType.equivalent(lt, rt)(ctx)
         (lp, rp) match {
           // PropEquivInst
-          // TODO this rule appears to contain several typos,
-          //  waiting for confirmation of the corrected rule
-          case (IPEqual(la, _), IPEqual(IVariable(rav: IVAlgorithmic), _)) if rav.solution.isEmpty =>
+          case (IPEqual(la, lb), IPEqual(IVariable(rav: IVAlgorithmic), rb)) if rav.solution.isEmpty =>
             val ls = la.sort(ctx)
-            if ls == rav.sort then
+            if ls == rav.sort && ls == lb.sort(ctx) && ls == rb.sort(ctx) && lb == rb then
               rav.solution = Some(la)
           case _ => ()
         }
