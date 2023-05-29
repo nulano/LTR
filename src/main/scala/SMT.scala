@@ -89,11 +89,17 @@ object Z3 {
   private val process = new ProcessBuilder("z3", "-in").start()
   private val processInput = process.getOutputStream
   private val processOutput = new BufferedReader(new InputStreamReader(process.getInputStream))
+  
+  type BenchmarkCallback = (LogicCtx, Long, Long, Long) => Unit
+
+  var debug = true
+  var benchmarkCallback: Option[BenchmarkCallback] = None
 
   processInput.write("(set-option :timeout 1000)\n".getBytes)
 
   private def assertUnsat(ctx: LogicCtx, statement: String): Unit = {
-    System.err.println(s"Z3 checking: $statement")  // DEBUG
+    if debug then
+      System.err.println(s"Z3 checking: $statement")
     if !unsat(ctx) then
       throw TypeException(s"failed to verify: $statement")
   }
@@ -117,14 +123,18 @@ object Z3 {
    * @return true if ctx is not satisfiable, false otherwise
    */
   def unsat(ctx: LogicCtx): Boolean = {
+    val time_start = System.currentTimeMillis()
     val text = SMTLIBGenerator.generate(ctx).mkString("(reset)\n", "\n", "\n")
+    val time_generated = System.currentTimeMillis()
     processInput.write(text.getBytes)
     processInput.flush()
     val output = processOutput.readLine()
+    val time_done = System.currentTimeMillis()
     if output == null || !process.isAlive then
       throw new RuntimeException("Z3 process died")
     // TODO "unknown" -> timeout
     //      "sat" -> not unsat
+    benchmarkCallback.foreach(_(ctx, time_start, time_generated, time_done))
     output.trim == "unsat"
   }
 }
