@@ -1,15 +1,15 @@
-lib\boolean.ltr parse:		9		total: 60 ms		min: 1 ms		avg: 6.666666666666667 ms		max: 18 ms		median: 4.0 ms
-lib\boolean.ltr check:		6		total: 422 ms		min: 18 ms		avg: 70.33333333333333 ms		max: 109 ms		median: 80.0 ms
-lib\boolean.ltr total:		9		total: 495 ms		min: 5 ms		avg: 55.0 ms		max: 112 ms		median: 43.0 ms
-lib\natural.ltr parse:		21		total: 26 ms		min: 0 ms		avg: 1.2380952380952381 ms		max: 5 ms		median: 1.0 ms
-lib\natural.ltr check:		18		total: 2767 ms		min: 20 ms		avg: 153.72222222222223 ms		max: 657 ms		median: 96.5 ms
-lib\natural.ltr total:		21		total: 2794 ms		min: 1 ms		avg: 133.04761904761904 ms		max: 658 ms		median: 87.0 ms
-lib\list.ltr parse:		19		total: 12 ms		min: 0 ms		avg: 0.631578947368421 ms		max: 2 ms		median: 1.0 ms
-lib\list.ltr check:		14		total: 4780 ms		min: 26 ms		avg: 341.42857142857144 ms		max: 785 ms		median: 294.5 ms
-lib\list.ltr total:		19		total: 4792 ms		min: 0 ms		avg: 252.21052631578948 ms		max: 786 ms		median: 102.0 ms
-<all> parse:		49		total: 98 ms		min: 0 ms		avg: 2.0 ms		max: 18 ms		median: 1.0 ms
-<all> check:		38		total: 7969 ms		min: 18 ms		avg: 209.71052631578948 ms		max: 785 ms		median: 100.5 ms
-<all> total:		49		total: 8081 ms		min: 0 ms		avg: 164.91836734693877 ms		max: 786 ms		median: 83.0 ms
-SMT generate:		373		total: 62 ms		min: 0 ms		avg: 0.16621983914209115 ms		max: 11 ms		median: 0.0 ms
-SMT prove:		373		total: 7788 ms		min: 15 ms		avg: 20.87935656836461 ms		max: 329 ms		median: 19.0 ms
-SMT total:		373		total: 7850 ms		min: 15 ms		avg: 21.0455764075067 ms		max: 330 ms		median: 19.0 ms
+lib\boolean.ltr parse:		9		total: 97 ms		min: 1 ms		avg: 10.78 ± 9.46 ms		max: 29 ms		median: 7.0 ms
+lib\boolean.ltr check:		6		total: 442 ms		min: 27 ms		avg: 73.67 ± 28.16 ms		max: 111 ms		median: 79.5 ms
+lib\boolean.ltr total:		9		total: 555 ms		min: 8 ms		avg: 61.67 ± 37.45 ms		max: 116 ms		median: 58.0 ms
+lib\natural.ltr parse:		21		total: 33 ms		min: 0 ms		avg: 1.57 ± 1.87 ms		max: 7 ms		median: 1.0 ms
+lib\natural.ltr check:		18		total: 2302 ms		min: 19 ms		avg: 127.89 ± 135.21 ms		max: 614 ms		median: 78.0 ms
+lib\natural.ltr total:		21		total: 2337 ms		min: 2 ms		avg: 111.29 ± 132.61 ms		max: 615 ms		median: 75.0 ms
+lib\list.ltr parse:		19		total: 13 ms		min: 0 ms		avg: 0.68 ± 1.03 ms		max: 4 ms		median: 0.0 ms
+lib\list.ltr check:		14		total: 4552 ms		min: 20 ms		avg: 325.14 ± 254.30 ms		max: 753 ms		median: 259.0 ms
+lib\list.ltr total:		19		total: 4565 ms		min: 0 ms		avg: 240.26 ± 260.83 ms		max: 754 ms		median: 100.0 ms
+<all> parse:		49		total: 143 ms		min: 0 ms		avg: 2.92 ± 5.69 ms		max: 29 ms		median: 1.0 ms
+<all> check:		38		total: 7296 ms		min: 19 ms		avg: 192.00 ± 208.08 ms		max: 753 ms		median: 89.5 ms
+<all> total:		49		total: 7457 ms		min: 0 ms		avg: 152.18 ± 198.50 ms		max: 754 ms		median: 75.0 ms
+SMT generate:		373		total: 47 ms		min: 0 ms		avg: 0.13 ± 0.77 ms		max: 14 ms		median: 0.0 ms
+SMT prove:		373		total: 7109 ms		min: 15 ms		avg: 19.06 ± 15.20 ms		max: 309 ms		median: 18.0 ms
+SMT total:		373		total: 7156 ms		min: 15 ms		avg: 19.18 ± 15.21 ms		max: 309 ms		median: 18.0 ms

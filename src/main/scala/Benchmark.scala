@@ -87,7 +87,8 @@ private object Benchmark {
     val median = medianCalculator(times)
     val total = times.sum
     val count = times.length
-    println(s"$title:\t\t$count\t\ttotal: $total ms\t\tmin: $min ms\t\tavg: $avg ms\t\tmax: $max ms\t\tmedian: $median ms")
+    val stddev = Math.sqrt(times.map(_.toDouble).map(a => math.pow(a - avg, 2)).sum / times.size)
+    println(f"$title:\t\t$count\t\ttotal: $total ms\t\tmin: $min ms\t\tavg: $avg%2.2f ± $stddev%2.2f ms\t\tmax: $max ms\t\tmedian: $median ms")
   }
 
   def medianCalculator(times: List[Long]): Double = {
