@@ -90,41 +90,48 @@ object Z3 {
   private val processInput = process.getOutputStream
   private val processOutput = new BufferedReader(new InputStreamReader(process.getInputStream))
   
-  type BenchmarkCallback = (LogicCtx, Long, Long, Long) => Unit
+  type BenchmarkCallback = (String, Boolean, Long, Long) => Unit
 
   var debug = true
   var benchmarkCallback: Option[BenchmarkCallback] = None
 
   processInput.write("(set-option :timeout 1000)\n".getBytes)
 
-  private def assertUnsat(ctx: LogicCtx, statement: String): Unit = {
+  private def assertUnsat(ctx: LogicCtx, statement: String, trivial: Boolean): Unit = {
     if debug then
       System.err.println(s"Z3 checking: $statement")
-    if !unsat(ctx) then
+    val (isUnsat, timeToGenerate, timeToProve) = unsat(ctx)
+    if !isUnsat then
       throw TypeException(s"failed to verify: $statement")
+    benchmarkCallback.foreach(_(statement, trivial, timeToGenerate, timeToProve))
   }
 
   def assert(ctx: LogicCtx, proposition: Proposition): Unit = {
-    if proposition != IPTrue then
-      assertUnsat(ctx + IPNot(proposition), s"$ctx ⊨ $proposition")
+    val trivial = proposition match {
+      case IPTrue => return
+      case IPEqual(a, b) => a == b
+      case _ => false
+    }
+    assertUnsat(ctx + IPNot(proposition), s"$ctx ⊨ $proposition", trivial)
   }
 
   def assertEqual(ctx: LogicCtx, left: Proposition, right: Proposition): Unit = {
-    // left == right is commonly generated when passing argument to ∀ function
-    if left != right then
-      assertUnsat(ctx + IPNotEqual(left, right), s"$ctx ⊨ $left ≡ $right")
+    assertUnsat(ctx + IPNotEqual(left, right), s"$ctx ⊨ $left ≡ $right", left == right)
   }
 
-  def assertUnsat(ctx: LogicCtx): Unit = assertUnsat(ctx, s"$ctx ⊨ F")
+  def assertUnsat(ctx: LogicCtx): Unit = assertUnsat(ctx, s"$ctx ⊨ F", false)
 
   /**
    * Check that ctx is unsatisfiable, i.e. that its negation is valid.
    * @param ctx the logic context to check
-   * @return true if ctx is not satisfiable, false otherwise
+   * @return tuple of three values:
+   *         (true if ctx is not satisfiable, false otherwise;
+   *         time taken to generate SMT-LIB file;
+   *         time taken by Z3)
    */
-  def unsat(ctx: LogicCtx): Boolean = {
+  def unsat(ctx: LogicCtx): (Boolean, Long, Long) = {
     val time_start = System.currentTimeMillis()
-    val text = SMTLIBGenerator.generate(ctx).mkString("(reset)\n", "\n", "\n")
+    val text = SMTLIBGenerator.generate(ctx).mkString("", "\n", "\n(reset)\n")
     val time_generated = System.currentTimeMillis()
     processInput.write(text.getBytes)
     processInput.flush()
@@ -134,7 +141,6 @@ object Z3 {
       throw new RuntimeException("Z3 process died")
     // TODO "unknown" -> timeout
     //      "sat" -> not unsat
-    benchmarkCallback.foreach(_(ctx, time_start, time_generated, time_done))
-    output.trim == "unsat"
+    (output.trim == "unsat", time_generated - time_start, time_done - time_generated)
   }
 }

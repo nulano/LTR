@@ -1,15 +1,49 @@
-lib\boolean.ltr parse:		9		total: 97 ms		min: 1 ms		avg: 10.78 ± 9.46 ms		max: 29 ms		median: 7.0 ms
-lib\boolean.ltr check:		6		total: 442 ms		min: 27 ms		avg: 73.67 ± 28.16 ms		max: 111 ms		median: 79.5 ms
-lib\boolean.ltr total:		9		total: 555 ms		min: 8 ms		avg: 61.67 ± 37.45 ms		max: 116 ms		median: 58.0 ms
-lib\natural.ltr parse:		21		total: 33 ms		min: 0 ms		avg: 1.57 ± 1.87 ms		max: 7 ms		median: 1.0 ms
-lib\natural.ltr check:		18		total: 2302 ms		min: 19 ms		avg: 127.89 ± 135.21 ms		max: 614 ms		median: 78.0 ms
-lib\natural.ltr total:		21		total: 2337 ms		min: 2 ms		avg: 111.29 ± 132.61 ms		max: 615 ms		median: 75.0 ms
-lib\list.ltr parse:		19		total: 13 ms		min: 0 ms		avg: 0.68 ± 1.03 ms		max: 4 ms		median: 0.0 ms
-lib\list.ltr check:		14		total: 4552 ms		min: 20 ms		avg: 325.14 ± 254.30 ms		max: 753 ms		median: 259.0 ms
-lib\list.ltr total:		19		total: 4565 ms		min: 0 ms		avg: 240.26 ± 260.83 ms		max: 754 ms		median: 100.0 ms
-<all> parse:		49		total: 143 ms		min: 0 ms		avg: 2.92 ± 5.69 ms		max: 29 ms		median: 1.0 ms
-<all> check:		38		total: 7296 ms		min: 19 ms		avg: 192.00 ± 208.08 ms		max: 753 ms		median: 89.5 ms
-<all> total:		49		total: 7457 ms		min: 0 ms		avg: 152.18 ± 198.50 ms		max: 754 ms		median: 75.0 ms
-SMT generate:		373		total: 47 ms		min: 0 ms		avg: 0.13 ± 0.77 ms		max: 14 ms		median: 0.0 ms
-SMT prove:		373		total: 7109 ms		min: 15 ms		avg: 19.06 ± 15.20 ms		max: 309 ms		median: 18.0 ms
-SMT total:		373		total: 7156 ms		min: 15 ms		avg: 19.18 ± 15.21 ms		max: 309 ms		median: 18.0 ms
+lib\boolean.ltr parse:		9		total: 88 ms		min: 2 ms		avg: 9.78 ± 9.38 ms		max: 30 ms
+lib\boolean.ltr check:		6		total: 392 ms		min: 15 ms		avg: 65.33 ± 26.96 ms		max: 95 ms
+lib\boolean.ltr check - SMT:		6		total: 53 ms		min: 0 ms		avg: 8.83 ± 9.26 ms		max: 25 ms
+lib\boolean.ltr total:		9		total: 489 ms		min: 6 ms		avg: 54.33 ± 34.68 ms		max: 112 ms
+lib\natural.ltr parse:		21		total: 32 ms		min: 0 ms		avg: 1.52 ± 1.59 ms		max: 7 ms
+lib\natural.ltr check:		18		total: 2384 ms		min: 17 ms		avg: 132.44 ± 117.44 ms		max: 520 ms
+lib\natural.ltr check - SMT:		18		total: 39 ms		min: 0 ms		avg: 2.17 ± 2.14 ms		max: 8 ms
+lib\natural.ltr total:		21		total: 2417 ms		min: 2 ms		avg: 115.10 ± 118.08 ms		max: 522 ms
+lib\list.ltr parse:		19		total: 13 ms		min: 0 ms		avg: 0.68 ± 0.98 ms		max: 4 ms
+lib\list.ltr check:		14		total: 4329 ms		min: 17 ms		avg: 309.21 ± 238.82 ms		max: 725 ms
+lib\list.ltr check - SMT:		14		total: 37 ms		min: 0 ms		avg: 2.64 ± 2.58 ms		max: 7 ms
+lib\list.ltr total:		19		total: 4343 ms		min: 0 ms		avg: 228.58 ± 245.86 ms		max: 726 ms
+<all> parse:		49		total: 133 ms		min: 0 ms		avg: 2.71 ± 5.38 ms		max: 30 ms
+<all> check:		38		total: 7105 ms		min: 15 ms		avg: 186.97 ± 192.12 ms		max: 725 ms
+<all> check - SMT:		38		total: 129 ms		min: 0 ms		avg: 3.39 ± 4.87 ms		max: 25 ms
+<all> total:		49		total: 7249 ms		min: 0 ms		avg: 147.94 ± 185.01 ms		max: 726 ms
+SMT generate:		389		total: 54 ms		min: 0 ms		avg: 0.14 ± 0.86 ms		max: 16 ms
+SMT prove:		389		total: 6922 ms		min: 14 ms		avg: 17.79 ± 12.15 ms		max: 254 ms
+SMT total:		389		total: 6976 ms		min: 14 ms		avg: 17.93 ± 12.17 ms		max: 254 ms
+SMT nontrivial:		120		total: 2368 ms		min: 14 ms		avg: 19.73 ± 21.58 ms		max: 254 ms
+
+5 slowest SMT proofs:
+254ms: (i??? : ?, i??? : ?, j??? : ?, j??? : ?, (j??? ? 1), (j??? ? 1), ((i??? ? j???) = T)) ? ((((i??? - j???) / j???) + 1) = (i??? / j???))
+30ms: (i??? : ?, j??? : ?) ? ((j??? ? i???) = T) ? ((i??? ? j???) = T)
+26ms: (l??? : ?, n??? : ?, n??? : ?, b??? : ?) ? (b??? = b???)
+26ms: (i?? : ?) ? (i?? = i??)
+25ms: (i?? : ?, j?? : ?) ? ((j?? < i??) = F) ? ((j?? < i??) = F)
+
+In LaTeX format:
+lib\boolean.ltr & parse       &$  9$&$  88 ms$&$ 2 ms$&$9.78±9.38 ms$&$ 30 ms$\\
+lib\boolean.ltr & check       &$  6$&$ 392 ms$&$15 ms$&$65.33±26.96 ms$&$ 95 ms$\\
+lib\boolean.ltr & check - SMT &$  6$&$  53 ms$&$ 0 ms$&$8.83±9.26 ms$&$ 25 ms$\\
+lib\boolean.ltr & total       &$  9$&$ 489 ms$&$ 6 ms$&$54.33±34.68 ms$&$112 ms$\\
+lib\natural.ltr & parse       &$ 21$&$  32 ms$&$ 0 ms$&$1.52±1.59 ms$&$  7 ms$\\
+lib\natural.ltr & check       &$ 18$&$2384 ms$&$17 ms$&$132.44±117.44 ms$&$520 ms$\\
+lib\natural.ltr & check - SMT &$ 18$&$  39 ms$&$ 0 ms$&$2.17±2.14 ms$&$  8 ms$\\
+lib\natural.ltr & total       &$ 21$&$2417 ms$&$ 2 ms$&$115.10±118.08 ms$&$522 ms$\\
+lib\list.ltr    & parse       &$ 19$&$  13 ms$&$ 0 ms$&$0.68±0.98 ms$&$  4 ms$\\
+lib\list.ltr    & check       &$ 14$&$4329 ms$&$17 ms$&$309.21±238.82 ms$&$725 ms$\\
+lib\list.ltr    & check - SMT &$ 14$&$  37 ms$&$ 0 ms$&$2.64±2.58 ms$&$  7 ms$\\
+lib\list.ltr    & total       &$ 19$&$4343 ms$&$ 0 ms$&$228.58±245.86 ms$&$726 ms$\\
+<all>           & parse       &$ 49$&$ 133 ms$&$ 0 ms$&$2.71±5.38 ms$&$ 30 ms$\\
+<all>           & check       &$ 38$&$7105 ms$&$15 ms$&$186.97±192.12 ms$&$725 ms$\\
+<all>           & check - SMT &$ 38$&$ 129 ms$&$ 0 ms$&$3.39±4.87 ms$&$ 25 ms$\\
+<all>           & total       &$ 49$&$7249 ms$&$ 0 ms$&$147.94±185.01 ms$&$726 ms$\\
+SMT             & generate    &$389$&$  54 ms$&$ 0 ms$&$0.14±0.86 ms$&$ 16 ms$\\
+SMT             & prove       &$389$&$6922 ms$&$14 ms$&$17.79±12.15 ms$&$254 ms$\\
+SMT             & total       &$389$&$6976 ms$&$14 ms$&$17.93±12.17 ms$&$254 ms$\\
+SMT             & nontrivial  &$120$&$2368 ms$&$14 ms$&$19.73±21.58 ms$&$254 ms$\\
