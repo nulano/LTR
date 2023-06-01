@@ -262,9 +262,9 @@ case class PInductive(functor: FunctorSum, algebra: Algebra, index: Index) exten
   }
 
   override def substituteIndex(replacement: Index, target: IndexVariable): PInductive =
-    PInductive(functor, algebra, (replacement / target)(index))
+    PInductive((replacement / target)(functor), algebra, (replacement / target)(index))
 
-  override def norm: PInductive = PInductive(functor, algebra, index.norm)
+  override def norm: PInductive = PInductive(functor.norm, algebra, index.norm)
 }
 case class PExists(variable: IndexVariable, tp: PType) extends PTypeBase[PExists] {
   override def toString: String = s"∃$variable . $tp"
