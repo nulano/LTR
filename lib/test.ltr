@@ -14,4 +14,5 @@ let mylist = list_cons(nat_1, mylist)
 let mylist = list_cons(nat_0, mylist)
 let mylist = list_cons(nat_1, mylist)
 let len = (let x = list_len(mylist); return x : ↑nat(7))  -- check len is 7
-let mylist = mergesort(mylist)
+let sortedlist_des = mergesort(mylist)
+let sortedlist_asc = quicksort_asc(mylist)
